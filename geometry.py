@@ -595,3 +595,4 @@ if __name__ == "__main__":
     window = GeometryApp()
     window.show()
     sys.exit(app.exec_())
+

@@ -1,0 +1,20 @@
+Geometry Calculation Results
+==================================================
+
+Shape: Rhombus
+Astronomical Object: Star
+Alignment: Left
+
+Results:
+Rhombus PropertiesArea: 21094.50
+Perimeter: 728.77
+Dimensions: 123.0 × 343.0
+Overlap with Star: No
+
+
+Calculation History:
+1. Rhombus with None
+2. Rhombus with Black Hole
+3. Rhombus with Star
+4. Rhombus with Star
+5. Rhombus with Star

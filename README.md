@@ -1,8 +1,18 @@
 # Geometry-Shape-Calculator
 
-A comprehensive Python application for calculating various geometric shapes' properties including area, perimeter, volume, and surface area.
+⭐️ A comprehensive Python application for calculating various geometric shapes' properties including area, perimeter, volume, and surface area.
 
 ![Geometry Calculator](Astronomy.jpg)
+
+## 👥 Team Members
+
+- **Sayuri**
+- **Sithum** 
+- **Udesh**
+- **Hirusha**
+- **Imanya**
+- **Sandali**
+- **Malindu**
 
 ## 📋 Features
 
@@ -25,7 +35,7 @@ cd Geometry-Shape-Calculator
 
 Run the main geometry calculator: python geometry.py
 
-Follow the interactive prompts to select shapes and input dimensions.
+⭐️ Follow the interactive prompts to select shapes and input dimensions.
 
 📊 Supported Shapes
 
@@ -56,6 +66,8 @@ Follow the interactive prompts to select shapes and input dimensions.
 ├── README.md           # Project documentation
 └── Astronomy.jpg       # Project banner image
 
+
+
 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
@@ -66,6 +78,6 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
     Added: Comprehensive results logging to geometry_results.txt
     Improved: Code structure and error handling
 
-📞Contact
+📞 Contact
 
     For questions or suggestions, please open an issue or contact the maintainers.

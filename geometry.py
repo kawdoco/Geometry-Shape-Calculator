@@ -1,47 +1,118 @@
-# geometry_oop_with_astronomy.py
+# geometry_oop_with_astronomy_enhanced.py
 import sys
 import math
+import json
+from datetime import datetime
+from PyQt5.QtGui import QPolygonF, QBrush, QPen, QColor, QFont, QPainter
+from abc import ABC, abstractmethod
+from enum import Enum
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QComboBox, QMessageBox, QGraphicsScene, QGraphicsView,
-    QSizePolicy, QCheckBox
+    QSizePolicy, QCheckBox, QGroupBox, QTextEdit, QTabWidget, QFrame,
+    QGridLayout, QSpacerItem, QSizePolicy, QFileDialog, QSlider, QDoubleSpinBox
 )
-from PyQt5.QtGui import QPolygonF, QBrush, QPen, QColor
-from PyQt5.QtCore import QPointF, QRectF
+from PyQt5.QtGui import QPolygonF, QBrush, QPen, QColor, QFont, QPixmap, QIcon
+from PyQt5.QtCore import QPointF, QRectF, Qt, QSize, QTimer, QPropertyAnimation, QEasingCurve
+
+# ----------------- Enums for better code readability -----------------
+class ShapeType(Enum):
+    CIRCLE = "Circle"
+    RECTANGLE = "Rectangle"
+    TRIANGLE = "Triangle"
+    SQUARE = "Square"
+    ELLIPSE = "Ellipse"
+    PARALLELOGRAM = "Parallelogram"
+    RHOMBUS = "Rhombus"
+    PENTAGON = "Pentagon"
+    HEXAGON = "Hexagon"
+    OCTAGON = "Octagon"
+    STAR = "Star"
+    SPHERE = "Sphere"      # 3D shape
+    CUBE = "Cube"          # 3D shape
+    CYLINDER = "Cylinder"  # 3D shape
+    CONE = "Cone"          # 3D shape
+    PYRAMID = "Pyramid"    # 3D shape
 
 
-# ----------------- Base / Abstract-like classes -----------------
-class BaseShape2D:
-    """Abstract-ish 2D shape interface for area/perimeter/draw/natural_size."""
+class AlignmentType(Enum):
+    CENTER = "Center"
+    TOP = "Top"
+    BOTTOM = "Bottom"
+    LEFT = "Left"
+    RIGHT = "Right"
+    OVERLAP = "Overlap"
+    ORBIT = "Orbit"
+    RANDOM = "Random"
+
+
+class ThemeType(Enum):
+    LIGHT = "Light"
+    DARK = "Dark"
+    BLUE = "Blue"
+    GREEN = "Green"
+    COSMIC = "Cosmic"
+
+
+# ----------------- Base / Abstract classes -----------------
+class Shape(ABC):
+    """Abstract base class for all shapes."""
+    
+    @abstractmethod
     def area(self):
-        raise NotImplementedError
-
+        pass
+        
+    @abstractmethod
     def perimeter(self):
-        raise NotImplementedError
-
+        pass
+        
+    @abstractmethod
+    def volume(self):
+        """For 3D shapes, returns volume. For 2D shapes, returns 0."""
+        pass
+        
+    @abstractmethod
     def natural_size(self):
-        """Return (width, height) in the shape's own units (unscaled)."""
-        raise NotImplementedError
-
-    def draw(self, scene: QGraphicsScene, cx: float, cy: float, scale: float):
+        """Return (width, height, depth) in the shape's own units (unscaled)."""
+        pass
+        
+    @abstractmethod
+    def draw(self, scene: QGraphicsScene, cx: float, cy: float, scale: float, color: QColor = None):
         """Draw shape centered at (cx, cy) with a scale factor (units -> pixels)."""
-        raise NotImplementedError
-
+        pass
+        
     def bounding_box(self, cx: float, cy: float, scale: float):
         """Return (x_min, y_min, x_max, y_max) in pixels for overlap detection."""
-        # Default: use natural_size centered box
-        w, h = self.natural_size()
+        w, h, _ = self.natural_size()
         w_px = w * scale
         h_px = h * scale
         return (cx - w_px/2, cy - h_px/2, cx + w_px/2, cy + h_px/2)
+        
+    def __str__(self):
+        """String representation of the shape with its properties."""
+        return f"{self.__class__.__name__}: Area={self.area():.2f}, Perimeter={self.perimeter():.2f}"
 
 
-# ----------------- 2D Shapes (implementing interface) -----------------
-class Circle(BaseShape2D):
+class Shape2D(Shape, ABC):
+    """Abstract base class for 2D shapes."""
+    
+    def volume(self):
+        return 0  # 2D shapes have no volume
+
+
+class Shape3D(Shape, ABC):
+    """Abstract base class for 3D shapes."""
+    
+    def perimeter(self):
+        return 0  # 3D shapes typically don't have perimeter in the same sense
+
+
+# ----------------- 2D Shapes -----------------
+class Circle(Shape2D):
     def __init__(self, radius):
-        if radius is None or radius <= 0:
+        if radius <= 0:
             raise ValueError("Radius must be positive")
-        self._radius = radius  # encapsulated attribute
+        self._radius = radius
 
     def area(self):
         return math.pi * self._radius ** 2
@@ -51,26 +122,25 @@ class Circle(BaseShape2D):
 
     def natural_size(self):
         d = 2 * self._radius
-        return (d, d)
+        return (d, d, 0)  # 2D shape has depth=0
 
-    def draw(self, scene, cx, cy, scale):
-        scene.clear() if False else None  # no-op here; caller handles clearing or ordering
+    def draw(self, scene, cx, cy, scale, color=None):
         diameter_px = 2 * self._radius * scale
         x = cx - diameter_px/2
         y = cy - diameter_px/2
+        
+        fill_color = color if color else QColor("#4FC3F7")
+        border_color = fill_color.darker(150)
+        
         ellipse = scene.addEllipse(x, y, diameter_px, diameter_px)
-        if ellipse is not None:
-            ellipse.setBrush(QBrush(QColor("lightblue")))
-            ellipse.setPen(QPen(QColor("blue"), 3))
-            ellipse.setZValue(1)
-
-    def bounding_box(self, cx, cy, scale):
-        return super().bounding_box(cx, cy, scale)
+        ellipse.setBrush(QBrush(fill_color))
+        ellipse.setPen(QPen(border_color, 2))
+        ellipse.setZValue(1)
 
 
-class Rectangle(BaseShape2D):
+class Rectangle(Shape2D):
     def __init__(self, width, height):
-        if width is None or height is None or width <= 0 or height <= 0:
+        if width <= 0 or height <= 0:
             raise ValueError("Width and height must be positive")
         self._width = width
         self._height = height
@@ -82,23 +152,26 @@ class Rectangle(BaseShape2D):
         return 2 * (self._width + self._height)
 
     def natural_size(self):
-        return (self._width, self._height)
+        return (self._width, self._height, 0)
 
-    def draw(self, scene, cx, cy, scale):
+    def draw(self, scene, cx, cy, scale, color=None):
         w_px = self._width * scale
         h_px = self._height * scale
         x = cx - w_px/2
         y = cy - h_px/2
+        
+        fill_color = color if color else QColor("#81C784")
+        border_color = fill_color.darker(150)
+        
         rect = scene.addRect(x, y, w_px, h_px)
-        if rect is not None:
-            rect.setBrush(QBrush(QColor("lightgreen")))
-            rect.setPen(QPen(QColor("green"), 3))
-            rect.setZValue(1)
+        rect.setBrush(QBrush(fill_color))
+        rect.setPen(QPen(border_color, 2))
+        rect.setZValue(1)
 
 
-class Triangle(BaseShape2D):
+class Triangle(Shape2D):
     def __init__(self, base, height):
-        if base is None or height is None or base <= 0 or height <= 0:
+        if base <= 0 or height <= 0:
             raise ValueError("Base and height must be positive")
         self._base = base
         self._height = height
@@ -111,11 +184,15 @@ class Triangle(BaseShape2D):
         return self._base + self._height + hyp
 
     def natural_size(self):
-        return (self._base, self._height)
+        return (self._base, self._height, 0)
 
-    def draw(self, scene, cx, cy, scale):
+    def draw(self, scene, cx, cy, scale, color=None):
         base_px = self._base * scale
         height_px = self._height * scale
+        
+        fill_color = color if color else QColor("#FFF176")
+        border_color = fill_color.darker(150)
+        
         # center the triangle vertically at cy (apex up)
         points = [
             QPointF(cx, cy - height_px/2),
@@ -124,15 +201,14 @@ class Triangle(BaseShape2D):
         ]
         polygon = QPolygonF(points)
         item = scene.addPolygon(polygon)
-        if item is not None:
-            item.setBrush(QBrush(QColor("yellow")))
-            item.setPen(QPen(QColor("orange"), 3))
-            item.setZValue(1)
+        item.setBrush(QBrush(fill_color))
+        item.setPen(QPen(border_color, 2))
+        item.setZValue(1)
 
 
-class Square(BaseShape2D):
+class Square(Shape2D):
     def __init__(self, side):
-        if side is None or side <= 0:
+        if side <= 0:
             raise ValueError("Side must be positive")
         self._side = side
 
@@ -143,22 +219,25 @@ class Square(BaseShape2D):
         return 4 * self._side
 
     def natural_size(self):
-        return (self._side, self._side)
+        return (self._side, self._side, 0)
 
-    def draw(self, scene, cx, cy, scale):
+    def draw(self, scene, cx, cy, scale, color=None):
         s_px = self._side * scale
         x = cx - s_px/2
         y = cy - s_px/2
+        
+        fill_color = color if color else QColor("#FF8A65")
+        border_color = fill_color.darker(150)
+        
         rect = scene.addRect(x, y, s_px, s_px)
-        if rect is not None:
-            rect.setBrush(QBrush(QColor("pink")))
-            rect.setPen(QPen(QColor("red"), 3))
-            rect.setZValue(1)
+        rect.setBrush(QBrush(fill_color))
+        rect.setPen(QPen(border_color, 2))
+        rect.setZValue(1)
 
 
-class Ellipse(BaseShape2D):
+class Ellipse(Shape2D):
     def __init__(self, a, b):
-        if a is None or b is None or a <= 0 or b <= 0:
+        if a <= 0 or b <= 0:
             raise ValueError("Axes must be positive")
         self._a = a  # semi-major
         self._b = b  # semi-minor
@@ -171,23 +250,26 @@ class Ellipse(BaseShape2D):
         return math.pi * (self._a + self._b) * (1 + (3*h) / (10 + math.sqrt(4 - 3*h)))
 
     def natural_size(self):
-        return (2 * self._a, 2 * self._b)
+        return (2 * self._a, 2 * self._b, 0)
 
-    def draw(self, scene, cx, cy, scale):
+    def draw(self, scene, cx, cy, scale, color=None):
         w_px = 2 * self._a * scale
         h_px = 2 * self._b * scale
         x = cx - w_px/2
         y = cy - h_px/2
+        
+        fill_color = color if color else QColor("#DCE775")
+        border_color = fill_color.darker(150)
+        
         ellipse = scene.addEllipse(x, y, w_px, h_px)
-        if ellipse is not None:
-            ellipse.setBrush(QBrush(QColor("lightyellow")))
-            ellipse.setPen(QPen(QColor("brown"), 3))
-            ellipse.setZValue(1)
+        ellipse.setBrush(QBrush(fill_color))
+        ellipse.setPen(QPen(border_color, 2))
+        ellipse.setZValue(1)
 
 
-class Parallelogram(BaseShape2D):
+class Parallelogram(Shape2D):
     def __init__(self, base, side, height):
-        if base is None or side is None or height is None or base <= 0 or side <= 0 or height <= 0:
+        if base <= 0 or side <= 0 or height <= 0:
             raise ValueError("Dimensions must be positive")
         self._base = base
         self._side = side
@@ -201,14 +283,18 @@ class Parallelogram(BaseShape2D):
 
     def natural_size(self):
         # give some horizontal extra for shear
-        return (self._base + self._base * 0.2, self._height)
+        return (self._base + self._base * 0.2, self._height, 0)
 
-    def draw(self, scene, cx, cy, scale):
+    def draw(self, scene, cx, cy, scale, color=None):
         base_px = self._base * scale
         height_px = self._height * scale
         shear = base_px * 0.2
         x0 = cx - base_px/2
         y0 = cy - height_px/2
+        
+        fill_color = color if color else QColor("#4DD0E1")
+        border_color = fill_color.darker(150)
+        
         points = [
             QPointF(x0, y0),
             QPointF(x0 + base_px, y0),
@@ -217,15 +303,14 @@ class Parallelogram(BaseShape2D):
         ]
         polygon = QPolygonF(points)
         item = scene.addPolygon(polygon)
-        if item is not None:
-            item.setBrush(QBrush(QColor("cyan")))
-            item.setPen(QPen(QColor("darkblue"), 3))
-            item.setZValue(1)
+        item.setBrush(QBrush(fill_color))
+        item.setPen(QPen(border_color, 2))
+        item.setZValue(1)
 
 
-class Rhombus(BaseShape2D):
+class Rhombus(Shape2D):
     def __init__(self, d1, d2):
-        if d1 is None or d2 is None or d1 <= 0 or d2 <= 0:
+        if d1 <= 0 or d2 <= 0:
             raise ValueError("Diagonals must be positive")
         self._d1 = d1
         self._d2 = d2
@@ -238,11 +323,15 @@ class Rhombus(BaseShape2D):
         return 4 * side
 
     def natural_size(self):
-        return (self._d1, self._d2)
+        return (self._d1, self._d2, 0)
 
-    def draw(self, scene, cx, cy, scale):
+    def draw(self, scene, cx, cy, scale, color=None):
         d1_px = self._d1 * scale
         d2_px = self._d2 * scale
+        
+        fill_color = color if color else QColor("#BA68C8")
+        border_color = fill_color.darker(150)
+        
         points = [
             QPointF(cx, cy - d2_px / 2),
             QPointF(cx + d1_px / 2, cy),
@@ -251,15 +340,14 @@ class Rhombus(BaseShape2D):
         ]
         polygon = QPolygonF(points)
         item = scene.addPolygon(polygon)
-        if item is not None:
-            item.setBrush(QBrush(QColor("violet")))
-            item.setPen(QPen(QColor("purple"), 3))
-            item.setZValue(1)
+        item.setBrush(QBrush(fill_color))
+        item.setPen(QPen(border_color, 2))
+        item.setZValue(1)
 
 
-class Pentagon(BaseShape2D):
+class Pentagon(Shape2D):
     def __init__(self, side):
-        if side is None or side <= 0:
+        if side <= 0:
             raise ValueError("Side must be positive")
         self._side = side
 
@@ -272,10 +360,14 @@ class Pentagon(BaseShape2D):
     def natural_size(self):
         # approximate bounding box using circumradius ≈ 1.539 * side
         r = 1.539 * self._side
-        return (2*r, 2*r)
+        return (2*r, 2*r, 0)
 
-    def draw(self, scene, cx, cy, scale):
+    def draw(self, scene, cx, cy, scale, color=None):
         r_px = 1.539 * self._side * scale
+        
+        fill_color = color if color else QColor("#FFB74D")
+        border_color = fill_color.darker(150)
+        
         points = []
         for i in range(5):
             angle = 2 * math.pi * i / 5 - math.pi/2
@@ -284,309 +376,1662 @@ class Pentagon(BaseShape2D):
             points.append(QPointF(x, y))
         polygon = QPolygonF(points)
         item = scene.addPolygon(polygon)
-        if item is not None:
-            item.setBrush(QBrush(QColor("orange")))
-            item.setPen(QPen(QColor("darkred"), 3))
-            item.setZValue(1)
+        item.setBrush(QBrush(fill_color))
+        item.setPen(QPen(border_color, 2))
+        item.setZValue(1)
+
+
+class Hexagon(Shape2D):
+    def __init__(self, side):
+        if side <= 0:
+            raise ValueError("Side must be positive")
+        self._side = side
+
+    def area(self):
+        return (3 * math.sqrt(3) * self._side**2) / 2
+
+    def perimeter(self):
+        return 6 * self._side
+
+    def natural_size(self):
+        # Bounding box: width = 2 * side, height = √3 * side
+        width = 2 * self._side
+        height = math.sqrt(3) * self._side
+        return (width, height, 0)
+
+    def draw(self, scene, cx, cy, scale, color=None):
+        side_px = self._side * scale
+        
+        fill_color = color if color else QColor("#4DB6AC")
+        border_color = fill_color.darker(150)
+        
+        points = []
+        for i in range(6):
+            angle = 2 * math.pi * i / 6
+            x = cx + side_px * math.cos(angle)
+            y = cy + side_px * math.sin(angle)
+            points.append(QPointF(x, y))
+        polygon = QPolygonF(points)
+        item = scene.addPolygon(polygon)
+        item.setBrush(QBrush(fill_color))
+        item.setPen(QPen(border_color, 2))
+        item.setZValue(1)
+
+
+class Octagon(Shape2D):
+    def __init__(self, side):
+        if side <= 0:
+            raise ValueError("Side must be positive")
+        self._side = side
+
+    def area(self):
+        return 2 * (1 + math.sqrt(2)) * self._side**2
+
+    def perimeter(self):
+        return 8 * self._side
+
+    def natural_size(self):
+        # Bounding box: width = height = (1 + √2) * side
+        size = (1 + math.sqrt(2)) * self._side
+        return (size, size, 0)
+
+    def draw(self, scene, cx, cy, scale, color=None):
+        r_px = self._side / math.cos(math.pi/8) * scale
+        
+        fill_color = color if color else QColor("#7986CB")
+        border_color = fill_color.darker(150)
+        
+        points = []
+        for i in range(8):
+            angle = 2 * math.pi * i / 8 - math.pi/8
+            x = cx + r_px * math.cos(angle)
+            y = cy + r_px * math.sin(angle)
+            points.append(QPointF(x, y))
+        polygon = QPolygonF(points)
+        item = scene.addPolygon(polygon)
+        item.setBrush(QBrush(fill_color))
+        item.setPen(QPen(border_color, 2))
+        item.setZValue(1)
+
+
+class Star(Shape2D):
+    def __init__(self, outer_radius, inner_radius):
+        if outer_radius <= 0 or inner_radius <= 0:
+            raise ValueError("Radii must be positive")
+        self._outer_radius = outer_radius
+        self._inner_radius = inner_radius
+
+    def area(self):
+        # Approximation for a 5-pointed star
+        return (5 * self._outer_radius * self._inner_radius * 
+                math.sin(math.pi/5) * math.sin(3*math.pi/10) / 
+                math.sin(7*math.pi/10))
+
+    def perimeter(self):
+        # Approximation: 10 * average of radii
+        return 10 * (self._outer_radius + self._inner_radius) / 2
+
+    def natural_size(self):
+        return (2 * self._outer_radius, 2 * self._outer_radius, 0)
+
+    def draw(self, scene, cx, cy, scale, color=None):
+        outer_r_px = self._outer_radius * scale
+        inner_r_px = self._inner_radius * scale
+        
+        fill_color = color if color else QColor("#FFD54F")
+        border_color = fill_color.darker(150)
+        
+        points = []
+        for i in range(10):
+            angle = math.pi/2 + 2 * math.pi * i / 10
+            r = outer_r_px if i % 2 == 0 else inner_r_px
+            x = cx + r * math.cos(angle)
+            y = cy + r * math.sin(angle)
+            points.append(QPointF(x, y))
+        polygon = QPolygonF(points)
+        item = scene.addPolygon(polygon)
+        item.setBrush(QBrush(fill_color))
+        item.setPen(QPen(border_color, 2))
+        item.setZValue(1)
+
+
+# ----------------- 3D Shapes -----------------
+class Sphere(Shape3D):
+    def __init__(self, radius):
+        if radius <= 0:
+            raise ValueError("Radius must be positive")
+        self._radius = radius
+
+    def area(self):
+        return 4 * math.pi * self._radius ** 2
+
+    def volume(self):
+        return (4/3) * math.pi * self._radius ** 3
+
+    def natural_size(self):
+        d = 2 * self._radius
+        return (d, d, d)
+
+    def draw(self, scene, cx, cy, scale, color=None):
+        # Represent 3D sphere as a circle with shading
+        diameter_px = 2 * self._radius * scale
+        
+        fill_color = color if color else QColor("#64B5F6")
+        border_color = fill_color.darker(150)
+        highlight_color = fill_color.lighter(150)
+        
+        # Draw main circle
+        x = cx - diameter_px/2
+        y = cy - diameter_px/2
+        ellipse = scene.addEllipse(x, y, diameter_px, diameter_px)
+        ellipse.setBrush(QBrush(fill_color))
+        ellipse.setPen(QPen(border_color, 2))
+        ellipse.setZValue(1)
+        
+        # Draw highlight to give 3D effect
+        highlight_diameter = diameter_px * 0.6
+        highlight_x = x + diameter_px * 0.2
+        highlight_y = y + diameter_px * 0.2
+        highlight = scene.addEllipse(highlight_x, highlight_y, 
+                                    highlight_diameter, highlight_diameter)
+        highlight.setBrush(QBrush(highlight_color))
+        highlight.setPen(QPen(Qt.NoPen))
+        highlight.setZValue(2)
+
+
+class Cube(Shape3D):
+    def __init__(self, side):
+        if side <= 0:
+            raise ValueError("Side must be positive")
+        self._side = side
+
+    def area(self):
+        return 6 * self._side ** 2
+
+    def volume(self):
+        return self._side ** 3
+
+    def natural_size(self):
+        return (self._side, self._side, self._side)
+
+    def draw(self, scene, cx, cy, scale, color=None):
+        side_px = self._side * scale
+        
+        fill_color = color if color else QColor("#E57373")
+        border_color = fill_color.darker(150)
+        side_color = fill_color.darker(120)
+        top_color = fill_color.lighter(120)
+        
+        x = cx - side_px/2
+        y = cy - side_px/2
+        
+        # Draw front face
+        front = scene.addRect(x, y, side_px, side_px)
+        front.setBrush(QBrush(fill_color))
+        front.setPen(QPen(border_color, 2))
+        front.setZValue(1)
+        
+        # Draw top face (perspective)
+        top_points = [
+            QPointF(x, y),
+            QPointF(x + side_px, y),
+            QPointF(x + side_px * 0.8, y - side_px * 0.2),
+            QPointF(x - side_px * 0.2, y - side_px * 0.2)
+        ]
+        top = scene.addPolygon(QPolygonF(top_points))
+        top.setBrush(QBrush(top_color))
+        top.setPen(QPen(border_color, 2))
+        top.setZValue(0)
+        
+        # Draw side face (perspective)
+        side_points = [
+            QPointF(x + side_px, y),
+            QPointF(x + side_px, y + side_px),
+            QPointF(x + side_px * 0.8, y + side_px * 0.8),
+            QPointF(x + side_px * 0.8, y - side_px * 0.2)
+        ]
+        side = scene.addPolygon(QPolygonF(side_points))
+        side.setBrush(QBrush(side_color))
+        side.setPen(QPen(border_color, 2))
+        side.setZValue(0)
+
+
+class Cylinder(Shape3D):
+    def __init__(self, radius, height):
+        if radius <= 0 or height <= 0:
+            raise ValueError("Radius and height must be positive")
+        self._radius = radius
+        self._height = height
+
+    def area(self):
+        return 2 * math.pi * self._radius * (self._radius + self._height)
+
+    def volume(self):
+        return math.pi * self._radius ** 2 * self._height
+
+    def natural_size(self):
+        return (2 * self._radius, self._height, 2 * self._radius)
+
+    def draw(self, scene, cx, cy, scale, color=None):
+        radius_px = self._radius * scale
+        height_px = self._height * scale
+        
+        fill_color = color if color else QColor("#AED581")
+        border_color = fill_color.darker(150)
+        top_color = fill_color.lighter(120)
+        
+        # Draw main body (rectangle)
+        x = cx - radius_px
+        y = cy - height_px/2
+        body = scene.addRect(x, y, 2 * radius_px, height_px)
+        body.setBrush(QBrush(fill_color))
+        body.setPen(QPen(border_color, 2))
+        body.setZValue(1)
+        
+        # Draw top ellipse
+        top_ellipse = scene.addEllipse(x, y - radius_px/2, 2 * radius_px, radius_px)
+        top_ellipse.setBrush(QBrush(top_color))
+        top_ellipse.setPen(QPen(border_color, 2))
+        top_ellipse.setZValue(2)
+        
+        # Draw bottom ellipse
+        bottom_ellipse = scene.addEllipse(x, y + height_px - radius_px/2, 2 * radius_px, radius_px)
+        bottom_ellipse.setBrush(QBrush(fill_color.darker(120)))
+        bottom_ellipse.setPen(QPen(border_color, 2))
+        bottom_ellipse.setZValue(0)
+
+
+class Cone(Shape3D):
+    def __init__(self, radius, height):
+        if radius <= 0 or height <= 0:
+            raise ValueError("Radius and height must be positive")
+        self._radius = radius
+        self._height = height
+
+    def area(self):
+        slant_height = math.sqrt(self._radius**2 + self._height**2)
+        return math.pi * self._radius * (self._radius + slant_height)
+
+    def volume(self):
+        return (math.pi * self._radius ** 2 * self._height) / 3
+
+    def natural_size(self):
+        return (2 * self._radius, self._height, 2 * self._radius)
+
+    def draw(self, scene, cx, cy, scale, color=None):
+        radius_px = self._radius * scale
+        height_px = self._height * scale
+        
+        fill_color = color if color else QColor("#FFB74D")
+        border_color = fill_color.darker(150)
+        
+        # Draw base ellipse
+        x = cx - radius_px
+        y = cy + height_px/2 - radius_px/2
+        base = scene.addEllipse(x, y, 2 * radius_px, radius_px)
+        base.setBrush(QBrush(fill_color.darker(120)))
+        base.setPen(QPen(border_color, 2))
+        base.setZValue(0)
+        
+        # Draw cone body (triangle)
+        points = [
+            QPointF(cx, cy - height_px/2),  # Apex
+            QPointF(cx - radius_px, cy + height_px/2),  # Base left
+            QPointF(cx + radius_px, cy + height_px/2)   # Base right
+        ]
+        cone = scene.addPolygon(QPolygonF(points))
+        cone.setBrush(QBrush(fill_color))
+        cone.setPen(QPen(border_color, 2))
+        cone.setZValue(1)
+
+
+class Pyramid(Shape3D):
+    def __init__(self, base, height):
+        if base <= 0 or height <= 0:
+            raise ValueError("Base and height must be positive")
+        self._base = base
+        self._height = height
+
+    def area(self):
+        slant_height = math.sqrt((self._base/2)**2 + self._height**2)
+        return self._base**2 + 2 * self._base * slant_height
+
+    def volume(self):
+        return (self._base ** 2 * self._height) / 3
+
+    def natural_size(self):
+        return (self._base, self._height, self._base)
+
+    def draw(self, scene, cx, cy, scale, color=None):
+        base_px = self._base * scale
+        height_px = self._height * scale
+        
+        fill_color = color if color else QColor("#9575CD")
+        border_color = fill_color.darker(150)
+        side_color = fill_color.darker(120)
+        
+        # Draw base (square)
+        x = cx - base_px/2
+        y = cy + height_px/2 - base_px/2
+        base = scene.addRect(x, y, base_px, base_px)
+        base.setBrush(QBrush(fill_color.darker(120)))
+        base.setPen(QPen(border_color, 2))
+        base.setZValue(0)
+        
+        # Draw front face (triangle)
+        front_points = [
+            QPointF(cx, cy - height_px/2),  # Apex
+            QPointF(cx - base_px/2, cy + height_px/2),  # Base left
+            QPointF(cx + base_px/2, cy + height_px/2)   # Base right
+        ]
+        front = scene.addPolygon(QPolygonF(front_points))
+        front.setBrush(QBrush(fill_color))
+        front.setPen(QPen(border_color, 2))
+        front.setZValue(1)
+        
+        # Draw side face (triangle with perspective)
+        side_points = [
+            QPointF(cx, cy - height_px/2),  # Apex
+            QPointF(cx + base_px/2, cy + height_px/2),  # Base front right
+            QPointF(cx + base_px/2, cy + height_px/2 - base_px/2)  # Base back right
+        ]
+        side = scene.addPolygon(QPolygonF(side_points))
+        side.setBrush(QBrush(side_color))
+        side.setPen(QPen(border_color, 2))
+        side.setZValue(0.5)
 
 
 # ----------------- Astronomical Object -----------------
 class AstronomicalObject:
-    """Simple circle-astronomical object used for alignment/overlap demonstration."""
-    def __init__(self, radius, color="lightgray"):
-        if radius is None or radius <= 0:
+    """Represents astronomical objects for alignment demonstration."""
+    
+    def __init__(self, radius, color="#888888", name="Planet", has_rings=False):
+        if radius <= 0:
             raise ValueError("Astronomical radius must be positive")
         self._radius = radius
         self._color = color
+        self._name = name
+        self._has_rings = has_rings
 
     def natural_size(self):
-        return (2 * self._radius, 2 * self._radius)
+        return (2 * self._radius, 2 * self._radius, 2 * self._radius)
 
     def draw(self, scene, cx, cy, scale):
         diameter_px = 2 * self._radius * scale
         x = cx - diameter_px/2
         y = cy - diameter_px/2
+        
+        # Draw the astronomical object
         item = scene.addEllipse(x, y, diameter_px, diameter_px)
         item.setBrush(QBrush(QColor(self._color)))
         item.setPen(QPen(QColor("black"), 2))
         item.setZValue(0)  # behind shapes
+        
+        # Draw rings if applicable
+        if self._has_rings:
+            ring_width = diameter_px * 0.2
+            ring_height = diameter_px * 0.05
+            ring_x = cx - (diameter_px + ring_width)/2
+            ring_y = cy - ring_height/2
+            ring = scene.addEllipse(ring_x, ring_y, diameter_px + ring_width, ring_height)
+            ring.setBrush(QBrush(QColor(210, 180, 140, 180)))  # Tan color with transparency
+            ring.setPen(QPen(QColor(139, 69, 19), 1))  # Brown border
+            ring.setZValue(0.5)
+            ring.setRotation(30)  # Tilt the rings
+        
+        # Add a label
+        text = scene.addText(self._name)
+        text.setDefaultTextColor(QColor("white"))
+        text.setPos(cx - text.boundingRect().width()/2, 
+                   cy - text.boundingRect().height()/2)
+        text.setZValue(1)
 
     def bounding_box(self, cx, cy, scale):
         d = 2 * self._radius * scale
         return (cx - d/2, cy - d/2, cx + d/2, cy + d/2)
+        
+    def calculate_alignment_position(self, shape, alignment, scene_rect, scale):
+        """Calculate position for shape based on alignment with this astronomical object."""
+        scene_w = scene_rect.width()
+        scene_h = scene_rect.height()
+        
+        # Center of astronomical object
+        astro_cx = scene_w / 2
+        astro_cy = scene_h / 2
+        
+        # Shape dimensions in pixels
+        shape_w, shape_h, _ = shape.natural_size()
+        shape_w_px = shape_w * scale
+        shape_h_px = shape_h * scale
+        
+        # Astronomical object radius in pixels
+        astro_radius_px = self._radius * scale
+        
+        margin = 10  # Pixel margin
+        
+        if alignment == AlignmentType.CENTER:
+            return (astro_cx, astro_cy)
+        elif alignment == AlignmentType.TOP:
+            return (astro_cx, astro_cy - astro_radius_px - shape_h_px/2 - margin)
+        elif alignment == AlignmentType.BOTTOM:
+            return (astro_cx, astro_cy + astro_radius_px + shape_h_px/2 + margin)
+        elif alignment == AlignmentType.LEFT:
+            return (astro_cx - astro_radius_px - shape_w_px/2 - margin, astro_cy)
+        elif alignment == AlignmentType.RIGHT:
+            return (astro_cx + astro_radius_px + shape_w_px/2 + margin, astro_cy)
+        elif alignment == AlignmentType.OVERLAP:
+            return (astro_cx + 0.15 * astro_radius_px, astro_cy + 0.10 * astro_radius_px)
+        elif alignment == AlignmentType.ORBIT:
+            # Position in a circular orbit around the astronomical object
+            angle = 45  # 45 degree angle for demonstration
+            orbit_radius = astro_radius_px + shape_w_px/2 + margin
+            x = astro_cx + orbit_radius * math.cos(math.radians(angle))
+            y = astro_cy + orbit_radius * math.sin(math.radians(angle))
+            return (x, y)
+        elif alignment == AlignmentType.RANDOM:
+            # Random position within the scene
+            min_x = shape_w_px/2 + margin
+            max_x = scene_w - shape_w_px/2 - margin
+            min_y = shape_h_px/2 + margin
+            max_y = scene_h - shape_h_px/2 - margin
+            
+            import random
+            x = random.uniform(min_x, max_x)
+            y = random.uniform(min_y, max_y)
+            return (x, y)
+        else:
+            return (astro_cx, astro_cy)
+
+
+# ----------------- Shape Factory -----------------
+class ShapeFactory:
+    """Factory class to create shape instances based on type and parameters."""
+    
+    @staticmethod
+    def create_shape(shape_type, params):
+        if shape_type == ShapeType.CIRCLE:
+            return Circle(params[0])
+        elif shape_type == ShapeType.RECTANGLE:
+            return Rectangle(params[0], params[1])
+        elif shape_type == ShapeType.TRIANGLE:
+            return Triangle(params[0], params[1])
+        elif shape_type == ShapeType.SQUARE:
+            return Square(params[0])
+        elif shape_type == ShapeType.ELLIPSE:
+            return Ellipse(params[0], params[1])
+        elif shape_type == ShapeType.PARALLELOGRAM:
+            return Parallelogram(params[0], params[1], params[2])
+        elif shape_type == ShapeType.RHOMBUS:
+            return Rhombus(params[0], params[1])
+        elif shape_type == ShapeType.PENTAGON:
+            return Pentagon(params[0])
+        elif shape_type == ShapeType.HEXAGON:
+            return Hexagon(params[0])
+        elif shape_type == ShapeType.OCTAGON:
+            return Octagon(params[0])
+        elif shape_type == ShapeType.STAR:
+            return Star(params[0], params[1])
+        elif shape_type == ShapeType.SPHERE:
+            return Sphere(params[0])
+        elif shape_type == ShapeType.CUBE:
+            return Cube(params[0])
+        elif shape_type == ShapeType.CYLINDER:
+            return Cylinder(params[0], params[1])
+        elif shape_type == ShapeType.CONE:
+            return Cone(params[0], params[1])
+        elif shape_type == ShapeType.PYRAMID:
+            return Pyramid(params[0], params[1])
+        else:
+            raise ValueError(f"Unknown shape type: {shape_type}")
+
+
+# ----------------- Theme Manager -----------------
+class ThemeManager:
+    """Manages application themes."""
+    
+    THEMES = {
+        ThemeType.LIGHT: {
+            "background": "#ffffff",
+            "text": "#000000",
+            "panel": "#f8f8f8",
+            "border": "#cccccc",
+            "button": "#4a86e8",
+            "button_hover": "#3a76d8",
+            "button_pressed": "#2a66c8",
+            "accent": "#6a11cb",
+            "grid": "#e0e0e0"
+        },
+        ThemeType.DARK: {
+            "background": "#2d2d2d",
+            "text": "#ffffff",
+            "panel": "#3d3d3d",
+            "border": "#555555",
+            "button": "#5a96f8",
+            "button_hover": "#4a86e8",
+            "button_pressed": "#3a76d8",
+            "accent": "#8a31eb",
+            "grid": "#444444"
+        },
+        ThemeType.BLUE: {
+            "background": "#e8f4f8",
+            "text": "#003366",
+            "panel": "#d0e8f0",
+            "border": "#a0c0d0",
+            "button": "#3a76d8",
+            "button_hover": "#2a66c8",
+            "button_pressed": "#1a56b8",
+            "accent": "#0066cc",
+            "grid": "#c0d8e0"
+        },
+        ThemeType.GREEN: {
+            "background": "#f0f8f0",
+            "text": "#004400",
+            "panel": "#e0f0e0",
+            "border": "#a0c0a0",
+            "button": "#4caf50",
+            "button_hover": "#3d9f40",
+            "button_pressed": "#2e8f30",
+            "accent": "#008800",
+            "grid": "#d0e8d0"
+        },
+        ThemeType.COSMIC: {
+            "background": "#0a0a2a",
+            "text": "#ffffff",
+            "panel": "#1a1a3a",
+            "border": "#444466",
+            "button": "#6a11cb",
+            "button_hover": "#5a01bb",
+            "button_pressed": "#4a01ab",
+            "accent": "#2575fc",
+            "grid": "#2a2a4a"
+        }
+    }
+    
+    @staticmethod
+    def get_theme(theme_type):
+        return ThemeManager.THEMES.get(theme_type, ThemeManager.THEMES[ThemeType.LIGHT])
 
 
 # ----------------- GUI Application -----------------
 class GeometryApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Geometry OOP Project (2D + Astronomy Alignment)")
-        self.setGeometry(200, 200, 600, 600)
-
-        main_layout = QVBoxLayout()
-
-        # --- Control row 1: Shape type and astro show ---
-        row1 = QHBoxLayout()
-        row1.addWidget(QLabel("Select Shape:"))
+        self.setWindowTitle("🌌 Geometric Universe Explorer")
+        self.setGeometry(100, 100, 1400, 900)  # Larger window for better layout
+        
+        # Initialize attributes
+        self.current_shape = None
+        self.astro_object = None
+        self.history = []  # Store calculation history
+        self.current_theme = ThemeType.COSMIC
+        self.animation_timer = QTimer()
+        self.animation_timer.timeout.connect(self.animate)
+        self.animation_angle = 0
+        self.animation_speed = 1
+        
+        # Initialize UI
+        self.setup_ui()
+        self.apply_theme(self.current_theme)
+        
+    def setup_ui(self):
+        """Setup the user interface."""
+        main_layout = QHBoxLayout()
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Left panel for controls
+        left_panel = QWidget()
+        left_panel.setMaximumWidth(450)
+        left_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        left_layout = QVBoxLayout()
+        left_layout.setSpacing(10)
+        
+        # Title
+        title = QLabel("🌌 Geometric Universe Explorer")
+        title.setObjectName("title")
+        title.setAlignment(Qt.AlignCenter)
+        title.setMinimumHeight(60)
+        left_layout.addWidget(title)
+        
+        # Create tabs for better organization
+        tabs = QTabWidget()
+        tabs.setDocumentMode(True)
+        
+        # Shape tab
+        shape_tab = QWidget()
+        shape_layout = QVBoxLayout(shape_tab)
+        shape_layout.setSpacing(10)
+        
+        # Shape selection
+        shape_group = QGroupBox("🔷 Shape Properties")
+        shape_group_layout = QVBoxLayout()
+        shape_group_layout.setSpacing(8)
+        
+        shape_type_row = QHBoxLayout()
+        shape_type_row.addWidget(QLabel("Shape Type:"))
         self.shape_menu = QComboBox()
-        self.shape_menu.addItems([
-            "Circle", "Rectangle", "Triangle", "Square",
-            "Ellipse", "Parallelogram", "Rhombus", "Pentagon"
-        ])
-        self.shape_menu.currentIndexChanged.connect(self.update_labels)
-        row1.addWidget(self.shape_menu)
-
-        row1.addWidget(QLabel("Astronomy:"))
-        self.astro_menu = QComboBox()
-        self.astro_menu.addItems(["None", "Planet/Star"])
-        self.astro_menu.currentIndexChanged.connect(self.update_labels)
-        row1.addWidget(self.astro_menu)
-
-        main_layout.addLayout(row1)
-
-        # --- Inputs area ---
+        self.shape_menu.addItems([shape.value for shape in ShapeType])
+        self.shape_menu.currentIndexChanged.connect(self.update_input_fields)
+        shape_type_row.addWidget(self.shape_menu)
+        shape_group_layout.addLayout(shape_type_row)
+        
+        # Input fields
         self.inputs_layout = QVBoxLayout()
-
-        self.label1 = QLabel("Dimension 1:")
-        self.entry1 = QLineEdit()
-        self.label2 = QLabel("Dimension 2:")
-        self.entry2 = QLineEdit()
-        self.label3 = QLabel("Dimension 3:")
-        self.entry3 = QLineEdit()
-
-        self.inputs_layout.addWidget(self.label1)
-        self.inputs_layout.addWidget(self.entry1)
-        self.inputs_layout.addWidget(self.label2)
-        self.inputs_layout.addWidget(self.entry2)
-        self.inputs_layout.addWidget(self.label3)
-        self.inputs_layout.addWidget(self.entry3)
-
-        # Astronomical object inputs
-        astro_row = QHBoxLayout()
-        self.astro_radius_label = QLabel("Astro Radius:")
+        self.inputs_layout.setSpacing(5)
+        self.setup_input_fields()
+        shape_group_layout.addLayout(self.inputs_layout)
+        
+        # Color selection
+        color_row = QHBoxLayout()
+        color_row.addWidget(QLabel("Shape Color:"))
+        self.color_combo = QComboBox()
+        self.color_combo.addItems(["Default", "Red", "Green", "Blue", "Yellow", "Purple", "Orange", "Custom..."])
+        color_row.addWidget(self.color_combo)
+        shape_group_layout.addLayout(color_row)
+        
+        shape_group.setLayout(shape_group_layout)
+        shape_layout.addWidget(shape_group)
+        
+        tabs.addTab(shape_tab, "🟦 Shape")
+        
+        # Astronomy tab
+        astro_tab = QWidget()
+        astro_layout = QVBoxLayout(astro_tab)
+        astro_layout.setSpacing(10)
+        
+        astro_group = QGroupBox("🌠 Astronomy Settings")
+        astro_group_layout = QVBoxLayout()
+        astro_group_layout.setSpacing(8)
+        
+        astro_type_row = QHBoxLayout()
+        astro_type_row.addWidget(QLabel("Celestial Body:"))
+        self.astro_menu = QComboBox()
+        self.astro_menu.addItems(["None", "Planet", "Star", "Moon", "Gas Giant", "Black Hole"])
+        self.astro_menu.currentIndexChanged.connect(self.update_astro_fields)
+        astro_type_row.addWidget(self.astro_menu)
+        astro_group_layout.addLayout(astro_type_row)
+        
+        astro_params_row = QHBoxLayout()
+        astro_params_row.addWidget(QLabel("Radius:"))
         self.astro_radius_entry = QLineEdit()
-        self.align_label = QLabel("Alignment:")
+        self.astro_radius_entry.setPlaceholderText("50-200")
+        astro_params_row.addWidget(self.astro_radius_entry)
+        astro_group_layout.addLayout(astro_params_row)
+        
+        rings_row = QHBoxLayout()
+        rings_row.addWidget(QLabel("Has Rings:"))
+        self.rings_checkbox = QCheckBox()
+        rings_row.addWidget(self.rings_checkbox)
+        rings_row.addStretch()
+        astro_group_layout.addLayout(rings_row)
+        
+        alignment_row = QHBoxLayout()
+        alignment_row.addWidget(QLabel("Alignment:"))
         self.align_menu = QComboBox()
-        self.align_menu.addItems(["Center", "Top", "Bottom", "Left", "Right", "Overlap"])
-        astro_row.addWidget(self.astro_radius_label)
-        astro_row.addWidget(self.astro_radius_entry)
-        astro_row.addWidget(self.align_label)
-        astro_row.addWidget(self.align_menu)
-        self.inputs_layout.addLayout(astro_row)
-
-        main_layout.addLayout(self.inputs_layout)
-
-        # --- Buttons & result label ---
-        btn_row = QHBoxLayout()
-        self.calc_btn = QPushButton("Draw & Calculate")
+        self.align_menu.addItems([align.value for align in AlignmentType])
+        alignment_row.addWidget(self.align_menu)
+        astro_group_layout.addLayout(alignment_row)
+        
+        astro_group.setLayout(astro_group_layout)
+        astro_layout.addWidget(astro_group)
+        
+        # Animation settings
+        anim_group = QGroupBox("🌀 Animation")
+        anim_layout = QVBoxLayout()
+        anim_layout.setSpacing(8)
+        
+        anim_enable_row = QHBoxLayout()
+        anim_enable_row.addWidget(QLabel("Enable Animation:"))
+        self.anim_checkbox = QCheckBox()
+        self.anim_checkbox.stateChanged.connect(self.toggle_animation)
+        anim_enable_row.addWidget(self.anim_checkbox)
+        anim_enable_row.addStretch()
+        anim_layout.addLayout(anim_enable_row)
+        
+        speed_row = QHBoxLayout()
+        speed_row.addWidget(QLabel("Speed:"))
+        self.speed_slider = QSlider(Qt.Horizontal)
+        self.speed_slider.setMinimum(1)
+        self.speed_slider.setMaximum(10)
+        self.speed_slider.setValue(5)
+        self.speed_slider.valueChanged.connect(self.update_animation_speed)
+        speed_row.addWidget(self.speed_slider)
+        anim_layout.addLayout(speed_row)
+        
+        anim_group.setLayout(anim_layout)
+        astro_layout.addWidget(anim_group)
+        
+        tabs.addTab(astro_tab, "🌌 Astronomy")
+        
+        # Settings tab
+        settings_tab = QWidget()
+        settings_layout = QVBoxLayout(settings_tab)
+        settings_layout.setSpacing(10)
+        
+        theme_group = QGroupBox("🎨 Theme Settings")
+        theme_layout = QVBoxLayout()
+        theme_layout.setSpacing(8)
+        
+        theme_row = QHBoxLayout()
+        theme_row.addWidget(QLabel("Theme:"))
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems([theme.value for theme in ThemeType])
+        self.theme_combo.currentTextChanged.connect(self.change_theme)
+        theme_row.addWidget(self.theme_combo)
+        theme_layout.addLayout(theme_row)
+        
+        scale_row = QHBoxLayout()
+        scale_row.addWidget(QLabel("Scale Factor:"))
+        self.scale_spinbox = QDoubleSpinBox()
+        self.scale_spinbox.setMinimum(0.1)
+        self.scale_spinbox.setMaximum(5.0)
+        self.scale_spinbox.setValue(1.0)
+        self.scale_spinbox.setSingleStep(0.1)
+        scale_row.addWidget(self.scale_spinbox)
+        theme_layout.addLayout(scale_row)
+        
+        theme_group.setLayout(theme_layout)
+        settings_layout.addWidget(theme_group)
+        
+        # History section
+        history_group = QGroupBox("📜 History")
+        history_layout = QVBoxLayout()
+        self.history_list = QComboBox()
+        self.history_list.currentIndexChanged.connect(self.load_from_history)
+        history_layout.addWidget(self.history_list)
+        
+        history_btn_row = QHBoxLayout()
+        self.clear_history_btn = QPushButton("Clear History")
+        self.clear_history_btn.clicked.connect(self.clear_history)
+        history_btn_row.addWidget(self.clear_history_btn)
+        
+        self.save_history_btn = QPushButton("Save to File")
+        self.save_history_btn.clicked.connect(self.save_history_to_file)
+        history_btn_row.addWidget(self.save_history_btn)
+        history_layout.addLayout(history_btn_row)
+        
+        history_group.setLayout(history_layout)
+        settings_layout.addWidget(history_group)
+        
+        tabs.addTab(settings_tab, "⚙️ Settings")
+        
+        left_layout.addWidget(tabs)
+        
+        # Action buttons
+        button_row = QHBoxLayout()
+        button_row.setSpacing(10)
+        
+        self.calc_btn = QPushButton("🖌️ Draw & Calculate")
         self.calc_btn.clicked.connect(self.calculate)
-        btn_row.addWidget(self.calc_btn)
-
-        self.result_label = QLabel("")
-        btn_row.addWidget(self.result_label)
-        main_layout.addLayout(btn_row)
-
-        # --- Graphics area ---
+        self.calc_btn.setStyleSheet("font-size: 14px; padding: 10px;")
+        button_row.addWidget(self.calc_btn)
+        
+        self.clear_btn = QPushButton("🗑️ Clear")
+        self.clear_btn.clicked.connect(self.clear_all)
+        self.clear_btn.setObjectName("special")
+        button_row.addWidget(self.clear_btn)
+        
+        self.save_btn = QPushButton("💾 Save")
+        self.save_btn.clicked.connect(self.save_results)
+        self.save_btn.setObjectName("save")
+        button_row.addWidget(self.save_btn)
+        
+        left_layout.addLayout(button_row)
+        
+        # Results display
+        results_group = QGroupBox("📊 Results")
+        results_layout = QVBoxLayout()
+        self.result_label = QLabel("⏳ Results will be shown here.")
+        self.result_label.setWordWrap(True)
+        self.result_label.setMinimumHeight(120)
+        results_layout.addWidget(self.result_label)
+        results_group.setLayout(results_layout)
+        left_layout.addWidget(results_group)
+        
+        # Status bar
+        self.status_label = QLabel("🚀 Ready to explore the geometric universe!")
+        self.status_label.setMinimumHeight(30)
+        left_layout.addWidget(self.status_label)
+        
+        left_panel.setLayout(left_layout)
+        main_layout.addWidget(left_panel)
+        
+        # Right panel for visualization
+        right_panel = QWidget()
+        right_layout = QVBoxLayout()
+        right_layout.setSpacing(10)
+        
+        # Visualization title
+        viz_title = QLabel("🔭 Visualization Canvas")
+        viz_title.setStyleSheet("font-weight: bold; font-size: 16px; padding: 5px;")
+        viz_title.setAlignment(Qt.AlignCenter)
+        viz_title.setMinimumHeight(30)
+        right_layout.addWidget(viz_title)
+        
+        # Graphics area
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
-        self.view.setMinimumSize(480, 360)
+        self.view.setMinimumSize(800, 600)
         self.view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.scene.setSceneRect(0, 0, 480, 360)
-        main_layout.addWidget(self.view)
-
+        self.view.setRenderHint(QPainter.Antialiasing)
+        right_layout.addWidget(self.view)
+        
+        # Info panel below visualization
+        info_group = QGroupBox("ℹ️ Visualization Info")
+        info_layout = QVBoxLayout()
+        self.info_label = QLabel("• Select a shape and astronomical object\n• Choose an alignment type\n• Click 'Draw & Calculate' to visualize")
+        self.info_label.setWordWrap(True)
+        info_layout.addWidget(self.info_label)
+        info_group.setLayout(info_layout)
+        right_layout.addWidget(info_group)
+        
+        right_panel.setLayout(right_layout)
+        main_layout.addWidget(right_panel)
+        
         self.setLayout(main_layout)
-
-        # initialize labels / visibility
-        self.update_labels()
-
-    def resizeEvent(self, a0):
-        super().resizeEvent(a0)
-        size = self.view.size()
-        self.scene.setSceneRect(0, 0, size.width(), size.height())
-
-    def update_labels(self):
-        # Reset inputs every time the selection changes
-        self.entry1.clear(); self.entry2.clear(); self.entry3.clear()
-        self.astro_radius_entry.clear()
-        # Enable all by default
-        self.entry1.setDisabled(False)
-        self.entry2.setDisabled(False)
-        self.entry3.setDisabled(False)
-        self.astro_radius_entry.setDisabled(False)
-        self.align_menu.setDisabled(False)
-        self.astro_radius_label.show(); self.astro_radius_entry.show(); self.align_label.show(); self.align_menu.show()
-
-        shape = self.shape_menu.currentText()
-        astro_choice = self.astro_menu.currentText()
-
-        # default visibility
-        self.label1.show(); self.entry1.show()
-        self.label2.show(); self.entry2.show()
-        self.label3.hide(); self.entry3.hide()
-
-        if shape == "Circle":
-            self.label1.setText("Radius:")
-            self.label2.hide(); self.entry2.hide()
-        elif shape == "Rectangle":
-            self.label1.setText("Width:")
-            self.label2.setText("Height:")
-        elif shape == "Triangle":
-            self.label1.setText("Base:")
-            self.label2.setText("Height:")
-        elif shape == "Square":
-            self.label1.setText("Side:")
-            self.label2.hide(); self.entry2.hide()
-        elif shape == "Ellipse":
-            self.label1.setText("Semi-major axis (a):")
-            self.label2.setText("Semi-minor axis (b):")
-        elif shape == "Parallelogram":
-            self.label1.setText("Base:")
-            self.label2.setText("Side:")
-            self.label3.show(); self.entry3.show()
-            self.label3.setText("Height:")
-        elif shape == "Rhombus":
-            self.label1.setText("Diagonal 1:")
-            self.label2.setText("Diagonal 2:")
-        elif shape == "Pentagon":
-            self.label1.setText("Side:")
-            self.label2.hide(); self.entry2.hide()
-
-        # Astro UI show/hide
-        if astro_choice == "None":
-            self.astro_radius_label.hide()
-            self.astro_radius_entry.hide()
-            self.align_label.hide()
-            self.align_menu.hide()
-        else:
-            # visible
-            self.astro_radius_label.show(); self.astro_radius_entry.show()
-            self.align_label.show(); self.align_menu.show()
-
-    def _create_shape_instance(self, shape_name, v1, v2, v3):
-        """Factory returning a BaseShape2D instance (or raise)."""
-        if shape_name == "Circle":
-            return Circle(v1)
-        elif shape_name == "Rectangle":
-            return Rectangle(v1, v2)
-        elif shape_name == "Triangle":
-            return Triangle(v1, v2)
-        elif shape_name == "Square":
-            return Square(v1)
-        elif shape_name == "Ellipse":
-            return Ellipse(v1, v2)
-        elif shape_name == "Parallelogram":
-            return Parallelogram(v1, v2, v3)
-        elif shape_name == "Rhombus":
-            return Rhombus(v1, v2)
-        elif shape_name == "Pentagon":
-            return Pentagon(v1)
-        else:
-            raise ValueError("Unknown shape")
-
-    @staticmethod
-    def _rects_intersect(a, b):
-        ax1, ay1, ax2, ay2 = a
-        bx1, by1, bx2, by2 = b
-        return not (ax2 < bx1 or bx2 < ax1 or ay2 < by1 or by2 < ay1)
-
-    def calculate(self):
-        shape_name = self.shape_menu.currentText()
-        astro_choice = self.astro_menu.currentText()
-        alignment = self.align_menu.currentText()
-
-        # parse inputs
+        
+        # Initialize UI state
+        self.update_input_fields()
+        self.update_astro_fields()
+        
+        # Initialize scene rect
+        self.scene.setSceneRect(0, 0, 800, 600)
+        
+    def apply_theme(self, theme_type):
+        """Apply the selected theme to the application."""
+        theme = ThemeManager.get_theme(theme_type)
+        self.current_theme = theme_type
+        
+        style = f"""
+            QWidget {{
+                font-family: 'Segoe UI', Arial, sans-serif;
+                color: {theme['text']};
+            }}
+            QGroupBox {{
+                font-weight: bold;
+                border: 2px solid {theme['border']};
+                border-radius: 8px;
+                margin-top: 1ex;
+                padding-top: 10px;
+                background-color: {theme['panel']};
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+                color: {theme['text']};
+            }}
+            QPushButton {{
+                background-color: {theme['button']};
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {theme['button_hover']};
+            }}
+            QPushButton:pressed {{
+                background-color: {theme['button_pressed']};
+            }}
+            QPushButton#special {{
+                background-color: #e67c73;
+            }}
+            QPushButton#special:hover {{
+                background-color: #d66c63;
+            }}
+            QPushButton#save {{
+                background-color: #0f9d58;
+            }}
+            QPushButton#save:hover {{
+                background-color: #0e8d48;
+            }}
+            QLineEdit {{
+                padding: 6px;
+                border: 1px solid {theme['border']};
+                border-radius: 4px;
+                background-color: white;
+                color: black;
+            }}
+            QComboBox {{
+                padding: 6px;
+                border: 1px solid {theme['border']};
+                border-radius: 4px;
+                background-color: white;
+                color: black;
+            }}
+            QLabel#title {{
+                font-size: 20px;
+                font-weight: bold;
+                padding: 15px;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 {theme['accent']}, stop: 1 {theme['button']});
+                border-radius: 8px;
+                color: white;
+            }}
+            QTextEdit, QGraphicsView {{
+                border: 1px solid {theme['border']};
+                border-radius: 4px;
+                background-color: {theme['background']};
+            }}
+            QTabWidget::pane {{
+                border: 1px solid {theme['border']};
+                background: {theme['panel']};
+            }}
+            QTabBar::tab {{
+                background: {theme['panel']};
+                border: 1px solid {theme['border']};
+                padding: 8px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }}
+            QTabBar::tab:selected {{
+                background: {theme['background']};
+                border-bottom-color: {theme['background']};
+            }}
+            QSlider::groove:horizontal {{
+                border: 1px solid {theme['border']};
+                height: 8px;
+                background: {theme['panel']};
+                border-radius: 4px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {theme['button']};
+                border: 1px solid {theme['border']};
+                width: 18px;
+                margin: -5px 0;
+                border-radius: 9px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {theme['accent']};
+                border-radius: 4px;
+            }}
+            QCheckBox {{
+                spacing: 5px;
+            }}
+            QCheckBox::indicator {{
+                width: 16px;
+                height: 16px;
+                border: 1px solid {theme['border']};
+                border-radius: 3px;
+                background: white;
+            }}
+            QCheckBox::indicator:checked {{
+                background: {theme['button']};
+                border: 1px solid {theme['button']};
+            }}
+        """
+        
+        self.setStyleSheet(style)
+        self.update()
+        
+    def change_theme(self, theme_name):
+        """Change the application theme."""
         try:
-            v1 = float(self.entry1.text()) if self.entry1.isVisible() and self.entry1.text() else None
-            v2 = float(self.entry2.text()) if self.entry2.isVisible() and self.entry2.text() else None
-            v3 = float(self.entry3.text()) if self.entry3.isVisible() and self.entry3.text() else None
+            theme_type = ThemeType(theme_name)
+            self.apply_theme(theme_type)
+        except ValueError:
+            pass
+            
+    def setup_input_fields(self):
+        """Setup the input fields based on current shape selection."""
+        # Clear existing fields
+        for i in reversed(range(self.inputs_layout.count())):
+            item = self.inputs_layout.itemAt(i)
+            if item.layout():
+                # Clear layout and its widgets
+                for j in reversed(range(item.layout().count())):
+                    widget = item.layout().itemAt(j).widget()
+                    if widget:
+                        widget.deleteLater()
+                self.inputs_layout.removeItem(item)
+            elif item.widget():
+                # Remove widget directly
+                item.widget().deleteLater()
+        
+        shape_type = ShapeType(self.shape_menu.currentText())
+        
+        # Add appropriate input fields based on shape type
+        if shape_type in [ShapeType.CIRCLE, ShapeType.SPHERE]:
+            # One parameter needed - radius
+            field_layout = QHBoxLayout()
+            field_layout.addWidget(QLabel("Radius:"))
+            entry = QLineEdit()
+            entry.setPlaceholderText("Enter radius")
+            field_layout.addWidget(entry)
+            self.inputs_layout.addLayout(field_layout)
+            
+        elif shape_type in [ShapeType.SQUARE, ShapeType.CUBE, ShapeType.PENTAGON, 
+                           ShapeType.HEXAGON, ShapeType.OCTAGON]:
+            # One parameter needed - side
+            param_name = "Side"
+            field_layout = QHBoxLayout()
+            field_layout.addWidget(QLabel(f"{param_name}:"))
+            entry = QLineEdit()
+            entry.setPlaceholderText(f"Enter {param_name.lower()}")
+            field_layout.addWidget(entry)
+            self.inputs_layout.addLayout(field_layout)
+            
+        elif shape_type == ShapeType.STAR:
+            # Two parameters needed
+            field_layout1 = QHBoxLayout()
+            field_layout1.addWidget(QLabel("Outer Radius:"))
+            entry1 = QLineEdit()
+            entry1.setPlaceholderText("Enter outer radius")
+            field_layout1.addWidget(entry1)
+            self.inputs_layout.addLayout(field_layout1)
+            
+            field_layout2 = QHBoxLayout()
+            field_layout2.addWidget(QLabel("Inner Radius:"))
+            entry2 = QLineEdit()
+            entry2.setPlaceholderText("Enter inner radius")
+            field_layout2.addWidget(entry2)
+            self.inputs_layout.addLayout(field_layout2)
+            
+        elif shape_type in [ShapeType.RECTANGLE, ShapeType.TRIANGLE, ShapeType.ELLIPSE, 
+                           ShapeType.RHOMBUS, ShapeType.CYLINDER, ShapeType.CONE, 
+                           ShapeType.PYRAMID]:
+            # Two parameters needed
+            if shape_type == ShapeType.RECTANGLE:
+                param1, param2 = "Width", "Height"
+            elif shape_type == ShapeType.TRIANGLE:
+                param1, param2 = "Base", "Height"
+            elif shape_type == ShapeType.ELLIPSE:
+                param1, param2 = "Major axis", "Minor axis"
+            elif shape_type == ShapeType.RHOMBUS:
+                param1, param2 = "Diagonal 1", "Diagonal 2"
+            elif shape_type == ShapeType.CYLINDER:
+                param1, param2 = "Radius", "Height"
+            elif shape_type == ShapeType.CONE:
+                param1, param2 = "Radius", "Height"
+            elif shape_type == ShapeType.PYRAMID:
+                param1, param2 = "Base", "Height"
+                
+            field_layout1 = QHBoxLayout()
+            field_layout1.addWidget(QLabel(f"{param1}:"))
+            entry1 = QLineEdit()
+            entry1.setPlaceholderText(f"Enter {param1.lower()}")
+            field_layout1.addWidget(entry1)
+            self.inputs_layout.addLayout(field_layout1)
+            
+            field_layout2 = QHBoxLayout()
+            field_layout2.addWidget(QLabel(f"{param2}:"))
+            entry2 = QLineEdit()
+            entry2.setPlaceholderText(f"Enter {param2.lower()}")
+            field_layout2.addWidget(entry2)
+            self.inputs_layout.addLayout(field_layout2)
+            
+        elif shape_type == ShapeType.PARALLELOGRAM:
+            # Three parameters needed
+            field_layout1 = QHBoxLayout()
+            field_layout1.addWidget(QLabel("Base:"))
+            entry1 = QLineEdit()
+            entry1.setPlaceholderText("Enter base")
+            field_layout1.addWidget(entry1)
+            self.inputs_layout.addLayout(field_layout1)
+            
+            field_layout2 = QHBoxLayout()
+            field_layout2.addWidget(QLabel("Side:"))
+            entry2 = QLineEdit()
+            entry2.setPlaceholderText("Enter side")
+            field_layout2.addWidget(entry2)
+            self.inputs_layout.addLayout(field_layout2)
+            
+            field_layout3 = QHBoxLayout()
+            field_layout3.addWidget(QLabel("Height:"))
+            entry3 = QLineEdit()
+            entry3.setPlaceholderText("Enter height")
+            field_layout3.addWidget(entry3)
+            self.inputs_layout.addLayout(field_layout3)
+    
+    def update_input_fields(self):
+        """Update the input fields when shape selection changes."""
+        self.setup_input_fields()
+        
+    def update_astro_fields(self):
+        """Show/hide astronomical object fields based on selection."""
+        show_astro = self.astro_menu.currentText() != "None"
+        self.astro_radius_entry.setVisible(show_astro)
+        self.rings_checkbox.setVisible(show_astro)
+        self.align_menu.setVisible(show_astro)
+        
+        # Set default radius based on selection
+        if show_astro:
+            astro_type = self.astro_menu.currentText()
+            if astro_type == "Planet":
+                self.astro_radius_entry.setText("80")
+            elif astro_type == "Star":
+                self.astro_radius_entry.setText("120")
+                self.rings_checkbox.setChecked(False)
+            elif astro_type == "Moon":
+                self.astro_radius_entry.setText("40")
+            elif astro_type == "Gas Giant":
+                self.astro_radius_entry.setText("100")
+                self.rings_checkbox.setChecked(True)
+            elif astro_type == "Black Hole":
+                self.astro_radius_entry.setText("60")
+                self.rings_checkbox.setChecked(False)
+        
+    def get_shape_parameters(self):
+        """Get parameters from input fields based on current shape selection."""
+        shape_type = ShapeType(self.shape_menu.currentText())
+        params = []
 
-            shape_obj = self._create_shape_instance(shape_name, v1, v2, v3)
+        # Collect all numeric values from input fields
+        for i in range(self.inputs_layout.count()):
+            layout = self.inputs_layout.itemAt(i)
+            if isinstance(layout, QHBoxLayout):
+                # Get the input field (should be at position 1 in the layout)
+                if layout.count() > 1:
+                    widget = layout.itemAt(1).widget()
+                    if isinstance(widget, QLineEdit) and widget.text():
+                        try:
+                            param_value = float(widget.text())
+                            if param_value <= 0:
+                                raise ValueError("All values must be positive")
+                            if param_value > 10000:
+                                reply = QMessageBox.question(self, "Large Value", 
+                                                           f"Value {param_value} is very large. This may cause visualization issues. Continue?",
+                                                           QMessageBox.Yes | QMessageBox.No)
+                                if reply == QMessageBox.No:
+                                    return []
+                            params.append(param_value)
+                        except ValueError:
+                            raise ValueError(f"Invalid number: {widget.text()}")
 
-            astro_obj = None
-            if astro_choice != "None":
-                ar = float(self.astro_radius_entry.text()) if self.astro_radius_entry.text() else None
-                if ar is None:
-                    raise ValueError("Enter astronomical radius")
-                astro_obj = AstronomicalObject(ar)
+        # Validate parameter count
+        required_params = 1
+        if shape_type in [ShapeType.RECTANGLE, ShapeType.TRIANGLE, ShapeType.ELLIPSE, 
+                         ShapeType.RHOMBUS, ShapeType.STAR, ShapeType.CYLINDER, 
+                         ShapeType.CONE, ShapeType.PYRAMID]:
+            required_params = 2
+        elif shape_type == ShapeType.PARALLELOGRAM:
+            required_params = 3
 
-            # Prepare scene sizing and scaling
-            scene_rect: QRectF = self.scene.sceneRect()
-            scene_w = scene_rect.width()
-            scene_h = scene_rect.height()
-            # natural sizes
-            s_w, s_h = shape_obj.natural_size()
-            a_w = a_h = 0
-            if astro_obj:
-                a_w, a_h = astro_obj.natural_size()
+        if len(params) != required_params:
+            raise ValueError(f"This shape requires {required_params} parameters")
 
-            max_w = max(s_w, a_w) if (s_w and a_w) else (s_w or a_w)
-            max_h = max(s_h, a_h) if (s_h and a_h) else (s_h or a_h)
-            # avoid zero
-            max_w = max(max_w, 1)
-            max_h = max(max_h, 1)
-
-            # scale to fit both (85% of scene)
-            scale_x = (scene_w * 0.85) / max_w
-            scale_y = (scene_h * 0.85) / max_h
-            scale = min(scale_x, scale_y, 1.0)
-
-            # compute centers (in pixels)
-            astro_cx = scene_w / 2
-            astro_cy = scene_h / 2
-
-            # compute shape center based on alignment
-            # if no astro, just center shape
-            if not astro_obj:
-                shape_cx, shape_cy = scene_w / 2, scene_h / 2
+        return params
+        
+    def get_shape_color(self):
+        """Get the selected shape color."""
+        color_name = self.color_combo.currentText()
+        
+        if color_name == "Default":
+            return None
+        elif color_name == "Red":
+            return QColor("#F44336")
+        elif color_name == "Green":
+            return QColor("#4CAF50")
+        elif color_name == "Blue":
+            return QColor("#2196F3")
+        elif color_name == "Yellow":
+            return QColor("#FFEB3B")
+        elif color_name == "Purple":
+            return QColor("#9C27B0")
+        elif color_name == "Orange":
+            return QColor("#FF9800")
+        elif color_name == "Custom...":
+            # Open color dialog for custom color selection
+            color = QColorDialog.getColor()
+            return color if color.isValid() else None
+        
+        return None
+        
+    def get_astro_color(self):
+        """Get color for astronomical object based on selection."""
+        astro_type = self.astro_menu.currentText()
+        
+        if astro_type == "Planet":
+            return "#4CAF50"  # Green
+        elif astro_type == "Star":
+            return "#FFC107"  # Amber
+        elif astro_type == "Moon":
+            return "#E0E0E0"  # Light gray
+        elif astro_type == "Gas Giant":
+            return "#FF9800"  # Orange
+        elif astro_type == "Black Hole":
+            return "#212121"  # Very dark gray
+        else:
+            return "#888888"  # Default gray
+        
+    def calculate(self):
+        """Main calculation and drawing method."""
+        try:
+            # Get shape parameters and create shape
+            shape_type = ShapeType(self.shape_menu.currentText())
+            params = self.get_shape_parameters()
+            if not params:  # User cancelled due to large values
+                return
+                
+            shape_color = self.get_shape_color()
+            self.current_shape = ShapeFactory.create_shape(shape_type, params)
+            
+            # Create astronomical object if selected
+            self.astro_object = None
+            if self.astro_menu.currentText() != "None":
+                if not self.astro_radius_entry.text():
+                    raise ValueError("Please enter astronomical object radius")
+                astro_radius = float(self.astro_radius_entry.text())
+                if astro_radius <= 0:
+                    raise ValueError("Astronomical radius must be positive")
+                
+                astro_color = self.get_astro_color()
+                has_rings = self.rings_checkbox.isChecked()
+                self.astro_object = AstronomicalObject(astro_radius, color=astro_color, 
+                                                     name=self.astro_menu.currentText(),
+                                                     has_rings=has_rings)
+            
+            # Calculate scale and positions
+            scene_rect = self.scene.sceneRect()
+            if scene_rect.width() == 0 or scene_rect.height() == 0:
+                scene_rect = QRectF(0, 0, self.view.width(), self.view.height())
+                self.scene.setSceneRect(scene_rect)
+                
+            scale = self.calculate_scale(scene_rect) * self.scale_spinbox.value()
+            alignment = AlignmentType(self.align_menu.currentText())
+            
+            # Calculate positions
+            if self.astro_object:
+                astro_x, astro_y = scene_rect.width() / 2, scene_rect.height() / 2
+                shape_x, shape_y = self.astro_object.calculate_alignment_position(
+                    self.current_shape, alignment, scene_rect, scale)
             else:
-                # in pixel units we will use scaled sizes
-                astro_radius_px = astro_obj.natural_size()[0] / 2 * scale
-                shape_w_px = s_w * scale
-                shape_h_px = s_h * scale
-                margin = 6
-                if alignment == "Center":
-                    shape_cx, shape_cy = astro_cx, astro_cy
-                elif alignment == "Top":
-                    shape_cx = astro_cx
-                    shape_cy = astro_cy - (astro_radius_px + shape_h_px/2 + margin)
-                elif alignment == "Bottom":
-                    shape_cx = astro_cx
-                    shape_cy = astro_cy + (astro_radius_px + shape_h_px/2 + margin)
-                elif alignment == "Left":
-                    shape_cx = astro_cx - (astro_radius_px + shape_w_px/2 + margin)
-                    shape_cy = astro_cy
-                elif alignment == "Right":
-                    shape_cx = astro_cx + (astro_radius_px + shape_w_px/2 + margin)
-                    shape_cy = astro_cy
-                else:  # Overlap - slight offset
-                    shape_cx = astro_cx + 0.15 * astro_radius_px
-                    shape_cy = astro_cy + 0.10 * astro_radius_px
-
-            # Draw both objects: draw astro first (if any), then shape (shape above)
+                astro_x = astro_y = None
+                shape_x, shape_y = scene_rect.width() / 2, scene_rect.height() / 2
+            
+            # Draw everything
             self.scene.clear()
-            if astro_obj:
-                astro_obj.draw(self.scene, astro_cx, astro_cy, scale)
-            shape_obj.draw(self.scene, shape_cx, shape_cy, scale)
-
-            # overlap detection (bounding-box approximation)
-            overlap_text = "N/A"
-            if astro_obj:
-                astro_bb = astro_obj.bounding_box(astro_cx, astro_cy, scale)
-                shape_bb = shape_obj.bounding_box(shape_cx, shape_cy, scale)
-                overlap = self._rects_intersect(astro_bb, shape_bb)
-                overlap_text = "Yes" if overlap else "No"
-
-            # Prepare result text (use original units for area/perimeter)
-            res = f"Area = {shape_obj.area():.3f} | Perimeter = {shape_obj.perimeter():.3f}"
-            if astro_obj:
-                res += f"    | Overlap with astro: {overlap_text}"
-
-            # show in label and popup
-            self.result_label.setText(res)
-            QMessageBox.information(self, "Results", res)
-
+            
+            # Add a subtle grid to the background
+            self.draw_grid(scene_rect)
+            
+            if self.astro_object:
+                self.astro_object.draw(self.scene, astro_x, astro_y, scale)
+            self.current_shape.draw(self.scene, shape_x, shape_y, scale, shape_color)
+            
+            # Add position markers and connection line
+            if self.astro_object:
+                # Draw center markers
+                self.scene.addEllipse(astro_x-3, astro_y-3, 6, 6, QPen(Qt.green, 2))
+                self.scene.addEllipse(shape_x-3, shape_y-3, 6, 6, QPen(Qt.red, 2))
+                
+                # Add labels
+                astro_text = self.scene.addText("Center")
+                astro_text.setDefaultTextColor(Qt.darkGreen)
+                astro_text.setPos(astro_x + 10, astro_y - 15)
+                
+                shape_text = self.scene.addText("Shape")
+                shape_text.setDefaultTextColor(Qt.darkRed)
+                shape_text.setPos(shape_x + 10, shape_y - 15)
+                
+                # Draw line between centers
+                self.scene.addLine(astro_x, astro_y, shape_x, shape_y, QPen(Qt.blue, 1, Qt.DashLine))
+            
+            # Calculate and display results
+            self.display_results()
+            
+            # Add to history
+            self.add_to_history()
+            
+            # Update info label
+            alignment_name = alignment.value if self.astro_object else "Center"
+            self.info_label.setText(
+                f"• Shape: {shape_type.value}\n"
+                f"• Celestial Body: {self.astro_menu.currentText() if self.astro_object else 'None'}\n"
+                f"• Alignment: {alignment_name}\n"
+                f"• Scale: {scale:.2f} px/unit"
+            )
+            
+            self.status_label.setText("✅ Calculation completed successfully!")
+            
+            # Start animation if enabled
+            if self.anim_checkbox.isChecked():
+                self.animation_timer.start(50)  # 20 FPS
+            
         except Exception as e:
+            self.status_label.setText(f"❌ Error: {str(e)}")
             QMessageBox.critical(self, "Error", str(e))
+            
+    def draw_grid(self, scene_rect):
+        """Draw a subtle grid in the background."""
+        theme = ThemeManager.get_theme(self.current_theme)
+        grid_color = QColor(theme['grid'])
+        grid_color.setAlpha(100)  # Semi-transparent
+        
+        width = scene_rect.width()
+        height = scene_rect.height()
+        
+        # Draw horizontal lines
+        for y in range(0, int(height), 50):
+            self.scene.addLine(0, y, width, y, QPen(grid_color, 0.5))
+            
+        # Draw vertical lines
+        for x in range(0, int(width), 50):
+            self.scene.addLine(x, 0, x, height, QPen(grid_color, 0.5))
+            
+        # Draw axes
+        center_x = width / 2
+        center_y = height / 2
+        self.scene.addLine(0, center_y, width, center_y, QPen(Qt.gray, 1))
+        self.scene.addLine(center_x, 0, center_x, height, QPen(Qt.gray, 1))
+        
+    def calculate_scale(self, scene_rect):
+        """Calculate appropriate scale to fit both shape and astronomical object."""
+        scene_w = scene_rect.width()
+        scene_h = scene_rect.height()
+        
+        if scene_w == 0 or scene_h == 0:
+            return 1.0
+            
+        # Get natural sizes
+        shape_w, shape_h, _ = self.current_shape.natural_size()
+        
+        if self.astro_object:
+            astro_w, astro_h, _ = self.astro_object.natural_size()
+            
+            # Handle extreme size differences
+            size_ratio = max(astro_w / max(shape_w, 0.001), astro_h / max(shape_h, 0.001))
+            
+            if size_ratio > 100:  # Astronomical object is much larger
+                # Scale based on astronomical object but ensure shape is visible
+                scale_x = (scene_w * 0.4) / astro_w if astro_w > 0 else 1
+                scale_y = (scene_h * 0.4) / astro_h if astro_h > 0 else 1
+            else:
+                # Scale based on largest object
+                max_w = max(shape_w, astro_w)
+                max_h = max(shape_h, astro_h)
+                scale_x = (scene_w * 0.8) / max_w if max_w > 0 else 1
+                scale_y = (scene_h * 0.8) / max_h if max_h > 0 else 1
+        else:
+            # Scale based on shape only
+            scale_x = (scene_w * 0.8) / shape_w if shape_w > 0 else 1
+            scale_y = (scene_h * 0.8) / shape_h if shape_h > 0 else 1
+        
+        return min(scale_x, scale_y)
+        
+    def display_results(self):
+        """Display calculation results."""
+        if not self.current_shape:
+            return
+            
+        result_text = f"<h3>{self.current_shape.__class__.__name__} Properties</h3>"
+        result_text += f"<b>Area:</b> {self.current_shape.area():.2f}<br>"
+        result_text += f"<b>Perimeter:</b> {self.current_shape.perimeter():.2f}<br>"
+        
+        volume = self.current_shape.volume()
+        if volume > 0:
+            result_text += f"<b>Volume:</b> {volume:.2f}<br>"
+            
+        # Add dimensions
+        w, h, d = self.current_shape.natural_size()
+        if d > 0:
+            result_text += f"<b>Dimensions:</b> {w:.1f} × {h:.1f} × {d:.1f}<br>"
+        else:
+            result_text += f"<b>Dimensions:</b> {w:.1f} × {h:.1f}<br>"
+            
+        if self.astro_object:
+            # Check for overlap
+            scene_rect = self.scene.sceneRect()
+            scale = self.calculate_scale(scene_rect) * self.scale_spinbox.value()
+            
+            astro_x, astro_y = scene_rect.width() / 2, scene_rect.height() / 2
+            alignment = AlignmentType(self.align_menu.currentText())
+            shape_x, shape_y = self.astro_object.calculate_alignment_position(
+                self.current_shape, alignment, scene_rect, scale)
+                
+            astro_bb = self.astro_object.bounding_box(astro_x, astro_y, scale)
+            shape_bb = self.current_shape.bounding_box(shape_x, shape_y, scale)
+            
+            overlap = self.check_overlap(astro_bb, shape_bb)
+            result_text += f"<b>Overlap with {self.astro_menu.currentText()}:</b> {'Yes' if overlap else 'No'}<br>"
+            
+        self.result_label.setText(result_text)
+        
+    def add_to_history(self):
+        """Add current calculation to history."""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        shape_name = self.current_shape.__class__.__name__
+        astro_name = self.astro_menu.currentText() if self.astro_object else "None"
+        
+        history_entry = {
+            'timestamp': timestamp,
+            'shape': shape_name,
+            'astro': astro_name,
+            'result': self.result_label.text(),
+            'shape_type': self.shape_menu.currentText(),
+            'shape_params': self.get_shape_parameters(),
+            'astro_radius': self.astro_radius_entry.text() if self.astro_object else "",
+            'alignment': self.align_menu.currentText()
+        }
+        
+        self.history.append(history_entry)
+        # Keep only last 20 entries
+        if len(self.history) > 20:
+            self.history.pop(0)
+            
+        # Update history list
+        self.history_list.clear()
+        for i, entry in enumerate(reversed(self.history)):
+            self.history_list.addItem(f"{entry['timestamp']} - {entry['shape']} with {entry['astro']}")
+            
+    def load_from_history(self, index):
+        """Load a calculation from history."""
+        if index < 0 or index >= len(self.history):
+            return
+            
+        # Get the history entry (history is displayed in reverse order)
+        entry = self.history[len(self.history) - 1 - index]
+        
+        # Set shape type
+        shape_index = self.shape_menu.findText(entry['shape_type'])
+        if shape_index >= 0:
+            self.shape_menu.setCurrentIndex(shape_index)
+            
+        # Set shape parameters
+        self.set_shape_parameters(entry['shape_params'])
+        
+        # Set astronomical object
+        if entry['astro'] != "None":
+            astro_index = self.astro_menu.findText(entry['astro'])
+            if astro_index >= 0:
+                self.astro_menu.setCurrentIndex(astro_index)
+            self.astro_radius_entry.setText(entry['astro_radius'])
+        else:
+            self.astro_menu.setCurrentIndex(0)
+            
+        # Set alignment
+        align_index = self.align_menu.findText(entry['alignment'])
+        if align_index >= 0:
+            self.align_menu.setCurrentIndex(align_index)
+            
+        # Update results
+        self.result_label.setText(entry['result'])
+        
+    def set_shape_parameters(self, params):
+        """Set the shape parameters in the input fields."""
+        # Clear existing fields first
+        self.setup_input_fields()
+        
+        # Set the parameter values
+        param_index = 0
+        for i in range(self.inputs_layout.count()):
+            layout = self.inputs_layout.itemAt(i)
+            if isinstance(layout, QHBoxLayout) and param_index < len(params):
+                # Get the input field (should be at position 1 in the layout)
+                if layout.count() > 1:
+                    widget = layout.itemAt(1).widget()
+                    if isinstance(widget, QLineEdit):
+                        widget.setText(str(params[param_index]))
+                        param_index += 1
+        
+    def clear_history(self):
+        """Clear the calculation history."""
+        self.history = []
+        self.history_list.clear()
+        self.status_label.setText("🗑️ History cleared")
+        
+    def save_history_to_file(self):
+        """Save the calculation history to a file."""
+        try:
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Save History", "", "JSON Files (*.json);;Text Files (*.txt)"
+            )
+            
+            if filename:
+                with open(filename, 'w') as f:
+                    json.dump(self.history, f, indent=2)
+                    
+                self.status_label.setText(f"💾 History saved to {filename}")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Save Error", f"Could not save history: {str(e)}")
+            
+    def save_results(self):
+        """Save results to a text file."""
+        try:
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Save Results", "", "Text Files (*.txt)"
+            )
+            
+            if not filename:
+                return
+                
+            with open(filename, 'w', encoding='utf-8') as f:
+                f.write("Geometry Calculation Results\n")
+                f.write("=" * 50 + "\n\n")
+                f.write(f"Shape: {self.current_shape.__class__.__name__ if self.current_shape else 'None'}\n")
+                f.write(f"Astronomical Object: {self.astro_menu.currentText()}\n")
+                f.write(f"Alignment: {self.align_menu.currentText()}\n\n")
+                f.write("Results:\n")
+                f.write(self.result_label.text().replace('<br>', '\n').replace('<b>', '').replace('</b>', '').replace('<h3>', '').replace('</h3>', ''))
+                f.write("\n\nCalculation History:\n")
+                for i, entry in enumerate(self.history, 1):
+                    f.write(f"{i}. {entry['timestamp']} - {entry['shape']} with {entry['astro']}\n")
+            
+            self.status_label.setText(f"💾 Results saved to {filename}")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Save Error", f"Could not save results: {str(e)}")
+        
+    def clear_all(self):
+        """Clear all inputs, results, and the visualization."""
+        # Stop animation
+        self.animation_timer.stop()
+        
+        # Clear the graphics scene
+        self.scene.clear()
+        
+        # Clear input fields
+        for i in range(self.inputs_layout.count()):
+            layout = self.inputs_layout.itemAt(i)
+            if isinstance(layout, QHBoxLayout):
+                # Get the input field (should be at position 1 in the layout)
+                if layout.count() > 1:
+                    widget = layout.itemAt(1).widget()
+                    if isinstance(widget, QLineEdit):
+                        widget.clear()
+        
+        # Clear astronomical object fields
+        self.astro_radius_entry.clear()
+        self.rings_checkbox.setChecked(False)
+        
+        # Reset selections to defaults
+        self.shape_menu.setCurrentIndex(0)
+        self.astro_menu.setCurrentIndex(0)
+        self.align_menu.setCurrentIndex(0)
+        self.color_combo.setCurrentIndex(0)
+        self.anim_checkbox.setChecked(False)
+        
+        # Clear results
+        self.result_label.setText("⏳ Results will be shown here.")
+
+        # Reset info label
+        self.info_label.setText("• Select a shape and astronomical object\n• Choose an alignment type\n• Click 'Draw & Calculate' to visualize")
+
+        # Reset shape and astronomical object references
+        self.current_shape = None
+        self.astro_object = None
+
+        # Update status
+        self.status_label.setText("🔄 All inputs cleared. Ready for new calculation.")
+        
+    def toggle_animation(self, state):
+        """Toggle animation on or off."""
+        if state == Qt.Checked and self.current_shape and self.astro_object:
+            self.animation_timer.start(50)  # 20 FPS
+            self.animation_angle = 0
+        else:
+            self.animation_timer.stop()
+            
+    def update_animation_speed(self, speed):
+        """Update the animation speed."""
+        self.animation_speed = speed / 5.0  # Normalize to 0.2-2.0 range
+        
+    def animate(self):
+        """Animate the shape in orbit around the astronomical object."""
+        if not self.astro_object or not self.current_shape:
+            self.animation_timer.stop()
+            return
+            
+        # Increment angle based on speed
+        self.animation_angle += 0.05 * self.animation_speed
+        if self.animation_angle >= 360:
+            self.animation_angle = 0
+            
+        # Redraw the scene with new position
+        scene_rect = self.scene.sceneRect()
+        scale = self.calculate_scale(scene_rect) * self.scale_spinbox.value()
+        
+        astro_x, astro_y = scene_rect.width() / 2, scene_rect.height() / 2
+        
+        # Calculate orbit position
+        shape_w, shape_h, _ = self.current_shape.natural_size()
+        shape_w_px = shape_w * scale
+        astro_radius_px = self.astro_object._radius * scale
+        
+        orbit_radius = astro_radius_px + shape_w_px/2 + 10  # 10px margin
+        shape_x = astro_x + orbit_radius * math.cos(self.animation_angle)
+        shape_y = astro_y + orbit_radius * math.sin(self.animation_angle)
+        
+        # Redraw everything
+        self.scene.clear()
+        self.draw_grid(scene_rect)
+        self.astro_object.draw(self.scene, astro_x, astro_y, scale)
+        
+        shape_color = self.get_shape_color()
+        self.current_shape.draw(self.scene, shape_x, shape_y, scale, shape_color)
+        
+        # Draw orbit path
+        orbit = self.scene.addEllipse(
+            astro_x - orbit_radius, 
+            astro_y - orbit_radius,
+            orbit_radius * 2,
+            orbit_radius * 2,
+            QPen(QColor(255, 255, 255, 100), 1, Qt.DashLine)
+        )
+        orbit.setZValue(-1)
+        
+    def check_overlap(self, rect1, rect2):
+        """Check if two rectangles overlap."""
+        x1_min, y1_min, x1_max, y1_max = rect1
+        x2_min, y2_min, x2_max, y2_max = rect2
+        
+        return not (x1_max < x2_min or x2_max < x1_min or 
+                   y1_max < y2_min or y2_max < y1_min)
+        
+    def resizeEvent(self, event):
+        """Handle window resize events."""
+        super().resizeEvent(event)
+        # Update scene size when window is resized
+        if hasattr(self, 'view'):
+            size = self.view.size()
+            self.scene.setSceneRect(0, 0, size.width(), size.height())
+            # Redraw if we have content
+            if self.current_shape:
+                self.calculate()
 
 
 # ----------------- Run -----------------

@@ -1575,7 +1575,7 @@ class GeometryApp(QWidget):
             return QColor("#FF9800")
         elif color_name == "Custom...":
             # Open color dialog for custom color selection
-            color = QColorDialog.getColor()
+            color = QFileDialog.getColor()
             return color if color.isValid() else None
         
         return None

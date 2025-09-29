@@ -1,4 +1,4 @@
-# Geometry-Shape-Calculator
+# 🛢️ Geometry-Shape-Calculator
 
 ⭐️ **Geometry** is one of the oldest fields of mathematics, linking points, lines, curves and shapes in space. Ancient scholars and builders relied on geometric principles: for example, surviving Egyptian papyri show they computed areas and volumes of architectural forms using geometric formulas. Even Plato remarked that “God geometrizes continually”, highlighting geometry’s deep role in understanding the universe. This Python-based **Geometry Shape Calculator** carries forward that tradition, providing a practical tool to compute areas, perimeters, volumes, and surface areas for a wide range of shapes.
  
@@ -34,12 +34,12 @@
 
 ## 📋 Features
 
-☆ **2D Shape Calculations** – Compute area and perimeter for shapes like circles, triangles, rectangles, squares, ellipses, and regular polygons.  <br>
-☆ **3D Shape Calculations** – Compute volume and surface area for solids like spheres, cubes, cylinders, cones, pyramids, and rectangular prisms.  <br>
-☆ **Detailed Explanations** – Provides intermediate results and formula breakdowns so users can see how each value is derived.  <br>
-☆ **User-Friendly CLI** – Intuitive command-line interface guides users through shape selection and input, suitable for students and developers alike.  <br>
-☆ **Error Handling** – Validates input dimensions and handles invalid entries gracefully, ensuring robust operation.  <br>
-☆ **Results Logging** – Optional logging of calculation results to a text file (geometry_results.txt) for review and record-keeping.  <br><br>
+- **2D Shape Calculations** – Compute area and perimeter for shapes like circles, triangles, rectangles, squares, ellipses, and regular polygons.  <br>
+- **3D Shape Calculations** – Compute volume and surface area for solids like spheres, cubes, cylinders, cones, pyramids, and rectangular prisms.  <br>
+- **Detailed Explanations** – Provides intermediate results and formula breakdowns so users can see how each value is derived.  <br>
+- **User-Friendly CLI** – Intuitive command-line interface guides users through shape selection and input, suitable for students and developers alike.  <br>
+- **Error Handling** – Validates input dimensions and handles invalid entries gracefully, ensuring robust operation.  <br>
+- **Results Logging** – Optional logging of calculation results to a text file (geometry_results.txt) for review and record-keeping.  <br><br>
 
 
 ## 🚀 Installation
@@ -83,17 +83,17 @@
 
 ## 📊 Supported Shapes
 
-*Our calculator supports a broad range of common geometric shapes:*
+  *◆ Our calculator supports a broad range of common geometric shapes:*
 
-☆ **2D Shapes**: Circle, Triangle, Rectangle, Square, Parallelogram, Ellipse, Pentagon, Hexagon, and other regular polygons.  <br>
-☆ **3D Shapes**: Sphere, Cube, Right Circular Cylinder, Right Circular Cone, Pyramid (square and triangular base), Rectangular Prism, and other standard solids.
+- **2D Shapes**: Circle, Triangle, Rectangle, Square, Parallelogram, Ellipse, Pentagon, Hexagon, and other regular polygons.  <br>
+- **3D Shapes**: Sphere, Cube, Right Circular Cylinder, Right Circular Cone, Pyramid (square and triangular base), Rectangular Prism, and other standard solids.
 
 ⭐️ For each shape, the tool computes the appropriate properties (e.g., *area and perimeter* for 2D shapes, *volume* and *surface area* for 3D shapes) using well-known formulas. The interface may display reference diagrams or formulas during calculation to illustrate each computation.
 
 
 ## 🌐 Symbolic Meaning of Geometry
 
-Geometry has been more than just mathematics — it has carried **symbolic, spiritual, and architectural meaning** for centuries.
+◆ Geometry has been more than just mathematics — it has carried **symbolic, spiritual, and architectural meaning** for centuries.
 
 <div align="center">
   
@@ -104,7 +104,8 @@ Geometry has been more than just mathematics — it has carried **symbolic, spir
 </div>
 
 ### 🌀 Golden Ratio and Sacred Design
-The **Golden Ratio (φ)** has fascinated philosophers and architects since ancient times. Leonardo da Vinci’s works often used this divine proportion to bring harmony and beauty.
+
+◆ The **Golden Ratio (φ)** has fascinated philosophers and architects since ancient times. Leonardo da Vinci’s works often used this divine proportion to bring harmony and beauty.
 
 <div align="center">
   
@@ -115,6 +116,7 @@ The **Golden Ratio (φ)** has fascinated philosophers and architects since ancie
 </div>
 
 ### ✨ Shapes and Their Meanings
+
 - **Circle** – Unity, perfection, eternity  
 - **Triangle** – Balance, strength, harmony  
 - **Square** – Stability, order, material world  
@@ -132,7 +134,7 @@ The **Golden Ratio (φ)** has fascinated philosophers and architects since ancie
 
 ## 📁 Project Structure
 
-The repository is organized as follows:
+  ◆ The repository is organized as follows:
 
 *Geometry-Shape-Calculator/*  <br>
 ├── 📄 geometry.py              # Main program with calculation logic  <br>

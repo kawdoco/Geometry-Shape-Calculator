@@ -17,6 +17,7 @@ from PyQt5.QtCore import QPointF, QRectF, Qt, QSize, QTimer, QPropertyAnimation,
 
 # ----------------- Enums for better code readability -----------------
 class ShapeType(Enum):
+    # 2D Shapes
     CIRCLE = "Circle"
     RECTANGLE = "Rectangle"
     TRIANGLE = "Triangle"
@@ -28,11 +29,12 @@ class ShapeType(Enum):
     HEXAGON = "Hexagon"
     OCTAGON = "Octagon"
     STAR = "Star"
-    SPHERE = "Sphere"      # 3D shape
-    CUBE = "Cube"          # 3D shape
-    CYLINDER = "Cylinder"  # 3D shape
-    CONE = "Cone"          # 3D shape
-    PYRAMID = "Pyramid"    # 3D shape
+    # 3D Shapes
+    SPHERE = "Sphere"
+    CUBE = "Cube"
+    CYLINDER = "Cylinder"
+    CONE = "Cone"
+    PYRAMID = "Pyramid"
 
 
 class AlignmentType(Enum):
@@ -899,7 +901,11 @@ class ThemeManager:
             "button_hover": "#3a76d8",
             "button_pressed": "#2a66c8",
             "accent": "#6a11cb",
-            "grid": "#e0e0e0"
+            "grid": "#e0e0e0",
+            "combo_background": "#ffffff",
+            "combo_text": "#000000",
+            "spinbox_background": "#ffffff",
+            "spinbox_text": "#000000"
         },
         ThemeType.DARK: {
             "background": "#2d2d2d",
@@ -910,7 +916,11 @@ class ThemeManager:
             "button_hover": "#4a86e8",
             "button_pressed": "#3a76d8",
             "accent": "#8a31eb",
-            "grid": "#444444"
+            "grid": "#444444",
+            "combo_background": "#ffffff",
+            "combo_text": "#000000",
+            "spinbox_background": "#ffffff",
+            "spinbox_text": "#000000"
         },
         ThemeType.BLUE: {
             "background": "#e8f4f8",
@@ -921,7 +931,11 @@ class ThemeManager:
             "button_hover": "#2a66c8",
             "button_pressed": "#1a56b8",
             "accent": "#0066cc",
-            "grid": "#c0d8e0"
+            "grid": "#c0d8e0",
+            "combo_background": "#ffffff",
+            "combo_text": "#000000",
+            "spinbox_background": "#ffffff",
+            "spinbox_text": "#000000"
         },
         ThemeType.GREEN: {
             "background": "#f0f8f0",
@@ -932,7 +946,11 @@ class ThemeManager:
             "button_hover": "#3d9f40",
             "button_pressed": "#2e8f30",
             "accent": "#008800",
-            "grid": "#d0e8d0"
+            "grid": "#d0e8d0",
+            "combo_background": "#ffffff",
+            "combo_text": "#000000",
+            "spinbox_background": "#ffffff",
+            "spinbox_text": "#000000"
         },
         ThemeType.COSMIC: {
             "background": "#0a0a2a",
@@ -943,7 +961,11 @@ class ThemeManager:
             "button_hover": "#5a01bb",
             "button_pressed": "#4a01ab",
             "accent": "#2575fc",
-            "grid": "#2a2a4a"
+            "grid": "#2a2a4a",
+            "combo_background": "#ffffff",
+            "combo_text": "#000000",
+            "spinbox_background": "#ffffff",
+            "spinbox_text": "#000000"
         }
     }
     
@@ -968,6 +990,7 @@ class GeometryApp(QWidget):
         self.animation_timer.timeout.connect(self.animate)
         self.animation_angle = 0
         self.animation_speed = 1
+        self.current_shape_tab = 0  # Track which shape tab is active (0=2D, 1=3D)
         
         # Initialize UI
         self.setup_ui()
@@ -997,42 +1020,96 @@ class GeometryApp(QWidget):
         tabs = QTabWidget()
         tabs.setDocumentMode(True)
         
-        # Shape tab
+        # Shape tab with sub-tabs for 2D and 3D
         shape_tab = QWidget()
         shape_layout = QVBoxLayout(shape_tab)
         shape_layout.setSpacing(10)
         
-        # Shape selection
-        shape_group = QGroupBox("🔷 Shape Properties")
-        shape_group_layout = QVBoxLayout()
-        shape_group_layout.setSpacing(8)
+        # Create sub-tabs for 2D and 3D shapes
+        self.shape_sub_tabs = QTabWidget()
+        self.shape_sub_tabs.setDocumentMode(True)
         
-        shape_type_row = QHBoxLayout()
-        shape_type_row.addWidget(QLabel("Shape Type:"))
-        self.shape_menu = QComboBox()
-        self.shape_menu.addItems([shape.value for shape in ShapeType])
-        self.shape_menu.currentIndexChanged.connect(self.update_input_fields)
-        shape_type_row.addWidget(self.shape_menu)
-        shape_group_layout.addLayout(shape_type_row)
+        # 2D Shapes Tab
+        shapes_2d_tab = QWidget()
+        shapes_2d_layout = QVBoxLayout(shapes_2d_tab)
+        shapes_2d_layout.setSpacing(10)
         
-        # Input fields
+        shape_2d_group = QGroupBox("🟦 2D Shapes")
+        shape_2d_layout_group = QVBoxLayout()
+        shape_2d_layout_group.setSpacing(8)
+        
+        shape_2d_type_row = QHBoxLayout()
+        shape_2d_type_row.addWidget(QLabel("2D Shape Type:"))
+        self.shape_2d_menu = QComboBox()
+        # Add only 2D shapes
+        self.shape_2d_menu.addItems([
+            ShapeType.CIRCLE.value, ShapeType.RECTANGLE.value, ShapeType.TRIANGLE.value,
+            ShapeType.SQUARE.value, ShapeType.ELLIPSE.value, ShapeType.PARALLELOGRAM.value,
+            ShapeType.RHOMBUS.value, ShapeType.PENTAGON.value, ShapeType.HEXAGON.value,
+            ShapeType.OCTAGON.value, ShapeType.STAR.value
+        ])
+        self.shape_2d_menu.currentIndexChanged.connect(self.update_input_fields)
+        shape_2d_type_row.addWidget(self.shape_2d_menu)
+        shape_2d_layout_group.addLayout(shape_2d_type_row)
+        
+        shape_2d_group.setLayout(shape_2d_layout_group)
+        shapes_2d_layout.addWidget(shape_2d_group)
+        self.shape_sub_tabs.addTab(shapes_2d_tab, "🟦 2D Shapes")
+        
+        # 3D Shapes Tab
+        shapes_3d_tab = QWidget()
+        shapes_3d_layout = QVBoxLayout(shapes_3d_tab)
+        shapes_3d_layout.setSpacing(10)
+        
+        shape_3d_group = QGroupBox("🧊 3D Shapes")
+        shape_3d_layout_group = QVBoxLayout()
+        shape_3d_layout_group.setSpacing(8)
+        
+        shape_3d_type_row = QHBoxLayout()
+        shape_3d_type_row.addWidget(QLabel("3D Shape Type:"))
+        self.shape_3d_menu = QComboBox()
+        # Add only 3D shapes
+        self.shape_3d_menu.addItems([
+            ShapeType.SPHERE.value, ShapeType.CUBE.value, ShapeType.CYLINDER.value,
+            ShapeType.CONE.value, ShapeType.PYRAMID.value
+        ])
+        self.shape_3d_menu.currentIndexChanged.connect(self.update_input_fields)
+        shape_3d_type_row.addWidget(self.shape_3d_menu)
+        shape_3d_layout_group.addLayout(shape_3d_type_row)
+        
+        shape_3d_group.setLayout(shape_3d_layout_group)
+        shapes_3d_layout.addWidget(shape_3d_group)
+        self.shape_sub_tabs.addTab(shapes_3d_tab, "🧊 3D Shapes")
+        
+        # Connect tab change to update shape menu
+        self.shape_sub_tabs.currentChanged.connect(self.on_shape_tab_changed)
+        
+        shape_layout.addWidget(self.shape_sub_tabs)
+        
+        # Input fields for shape parameters
+        self.inputs_group = QGroupBox("📐 Shape Parameters")
         self.inputs_layout = QVBoxLayout()
         self.inputs_layout.setSpacing(5)
         self.setup_input_fields()
-        shape_group_layout.addLayout(self.inputs_layout)
+        self.inputs_group.setLayout(self.inputs_layout)
+        shape_layout.addWidget(self.inputs_group)
         
         # Color selection
+        color_group = QGroupBox("🎨 Shape Appearance")
+        color_layout = QVBoxLayout()
+        color_layout.setSpacing(8)
+        
         color_row = QHBoxLayout()
         color_row.addWidget(QLabel("Shape Color:"))
         self.color_combo = QComboBox()
         self.color_combo.addItems(["Default", "Red", "Green", "Blue", "Yellow", "Purple", "Orange", "Custom..."])
         color_row.addWidget(self.color_combo)
-        shape_group_layout.addLayout(color_row)
+        color_layout.addLayout(color_row)
         
-        shape_group.setLayout(shape_group_layout)
-        shape_layout.addWidget(shape_group)
+        color_group.setLayout(color_layout)
+        shape_layout.addWidget(color_group)
         
-        tabs.addTab(shape_tab, "🟦 Shape")
+        tabs.addTab(shape_tab, "🔷 Shapes")
         
         # Astronomy tab
         astro_tab = QWidget()
@@ -1203,7 +1280,7 @@ class GeometryApp(QWidget):
         
         # Visualization title
         viz_title = QLabel("🔭 Visualization Canvas")
-        viz_title.setStyleSheet("font-weight: bold; font-size: 16px; padding: 5px;")
+        viz_title.setObjectName("viz_title")
         viz_title.setAlignment(Qt.AlignCenter)
         viz_title.setMinimumHeight(30)
         right_layout.addWidget(viz_title)
@@ -1236,6 +1313,23 @@ class GeometryApp(QWidget):
         
         # Initialize scene rect
         self.scene.setSceneRect(0, 0, 800, 600)
+        
+    def on_shape_tab_changed(self, index):
+        """Handle shape tab change between 2D and 3D."""
+        self.current_shape_tab = index
+        self.update_input_fields()
+        
+    def get_current_shape_menu(self):
+        """Get the current shape menu based on selected tab."""
+        if self.current_shape_tab == 0:  # 2D tab
+            return self.shape_2d_menu
+        else:  # 3D tab
+            return self.shape_3d_menu
+        
+    def get_current_shape_type(self):
+        """Get the current shape type from the appropriate menu."""
+        current_menu = self.get_current_shape_menu()
+        return ShapeType(current_menu.currentText())
         
     def apply_theme(self, theme_type):
         """Apply the selected theme to the application."""
@@ -1298,8 +1392,21 @@ class GeometryApp(QWidget):
                 padding: 6px;
                 border: 1px solid {theme['border']};
                 border-radius: 4px;
-                background-color: white;
-                color: black;
+                background-color: {theme['combo_background']};
+                color: {theme['combo_text']};
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {theme['combo_background']};
+                color: {theme['combo_text']};
+                selection-background-color: {theme['button']};
+                selection-color: white;
+            }}
+            QDoubleSpinBox {{
+                padding: 6px;
+                border: 1px solid {theme['border']};
+                border-radius: 4px;
+                background-color: {theme['spinbox_background']};
+                color: {theme['spinbox_text']};
             }}
             QLabel#title {{
                 font-size: 20px;
@@ -1309,6 +1416,15 @@ class GeometryApp(QWidget):
                     stop: 0 {theme['accent']}, stop: 1 {theme['button']});
                 border-radius: 8px;
                 color: white;
+            }}
+            QLabel#viz_title {{
+                font-weight: bold; 
+                font-size: 16px; 
+                padding: 5px;
+                color: {theme['text']};
+                background-color: {theme['panel']};
+                border: 1px solid {theme['border']};
+                border-radius: 4px;
             }}
             QTextEdit, QGraphicsView {{
                 border: 1px solid {theme['border']};
@@ -1326,10 +1442,12 @@ class GeometryApp(QWidget):
                 margin-right: 2px;
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
+                color: {theme['text']};
             }}
             QTabBar::tab:selected {{
                 background: {theme['background']};
                 border-bottom-color: {theme['background']};
+                color: {theme['text']};
             }}
             QSlider::groove:horizontal {{
                 border: 1px solid {theme['border']};
@@ -1350,6 +1468,7 @@ class GeometryApp(QWidget):
             }}
             QCheckBox {{
                 spacing: 5px;
+                color: {theme['text']};
             }}
             QCheckBox::indicator {{
                 width: 16px;
@@ -1361,6 +1480,25 @@ class GeometryApp(QWidget):
             QCheckBox::indicator:checked {{
                 background: {theme['button']};
                 border: 1px solid {theme['button']};
+            }}
+            /* Ensure message boxes are readable in all themes */
+            QMessageBox {{
+                background-color: white;
+                color: black;
+            }}
+            QMessageBox QLabel {{
+                color: black;
+            }}
+            QMessageBox QPushButton {{
+                background-color: #4a86e8;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }}
+            QMessageBox QPushButton:hover {{
+                background-color: #3a76d8;
             }}
         """
         
@@ -1391,7 +1529,7 @@ class GeometryApp(QWidget):
                 # Remove widget directly
                 item.widget().deleteLater()
         
-        shape_type = ShapeType(self.shape_menu.currentText())
+        shape_type = self.get_current_shape_type()
         
         # Add appropriate input fields based on shape type
         if shape_type in [ShapeType.CIRCLE, ShapeType.SPHERE]:
@@ -1516,7 +1654,7 @@ class GeometryApp(QWidget):
         
     def get_shape_parameters(self):
         """Get parameters from input fields based on current shape selection."""
-        shape_type = ShapeType(self.shape_menu.currentText())
+        shape_type = self.get_current_shape_type()
         params = []
 
         # Collect all numeric values from input fields
@@ -1601,7 +1739,7 @@ class GeometryApp(QWidget):
         """Main calculation and drawing method."""
         try:
             # Get shape parameters and create shape
-            shape_type = ShapeType(self.shape_menu.currentText())
+            shape_type = self.get_current_shape_type()
             params = self.get_shape_parameters()
             if not params:  # User cancelled due to large values
                 return
@@ -1693,7 +1831,40 @@ class GeometryApp(QWidget):
             
         except Exception as e:
             self.status_label.setText(f"❌ Error: {str(e)}")
-            QMessageBox.critical(self, "Error", str(e))
+            self.show_error_message(str(e))
+            
+    def show_error_message(self, message):
+        """Show an error message with proper styling that works in all themes."""
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.setWindowTitle("Error")
+        msg_box.setText(message)
+        
+        # Apply a style that ensures readability in all themes
+        msg_box.setStyleSheet("""
+            QMessageBox {
+                background-color: white;
+                color: black;
+            }
+            QMessageBox QLabel {
+                color: black;
+                font-size: 12px;
+            }
+            QMessageBox QPushButton {
+                background-color: #4a86e8;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QMessageBox QPushButton:hover {
+                background-color: #3a76d8;
+            }
+        """)
+        
+        msg_box.exec_()
             
     def draw_grid(self, scene_rect):
         """Draw a subtle grid in the background."""
@@ -1801,7 +1972,7 @@ class GeometryApp(QWidget):
             'shape': shape_name,
             'astro': astro_name,
             'result': self.result_label.text(),
-            'shape_type': self.shape_menu.currentText(),
+            'shape_type': self.get_current_shape_type().value,
             'shape_params': self.get_shape_parameters(),
             'astro_radius': self.astro_radius_entry.text() if self.astro_object else "",
             'alignment': self.align_menu.currentText()
@@ -1825,10 +1996,24 @@ class GeometryApp(QWidget):
         # Get the history entry (history is displayed in reverse order)
         entry = self.history[len(self.history) - 1 - index]
         
-        # Set shape type
-        shape_index = self.shape_menu.findText(entry['shape_type'])
-        if shape_index >= 0:
-            self.shape_menu.setCurrentIndex(shape_index)
+        # Set shape type in appropriate menu based on shape type
+        shape_type = entry['shape_type']
+        if shape_type in [shape.value for shape in [
+            ShapeType.CIRCLE, ShapeType.RECTANGLE, ShapeType.TRIANGLE, ShapeType.SQUARE,
+            ShapeType.ELLIPSE, ShapeType.PARALLELOGRAM, ShapeType.RHOMBUS, ShapeType.PENTAGON,
+            ShapeType.HEXAGON, ShapeType.OCTAGON, ShapeType.STAR
+        ]]:
+            # It's a 2D shape, switch to 2D tab and select the shape
+            self.shape_sub_tabs.setCurrentIndex(0)
+            shape_index = self.shape_2d_menu.findText(shape_type)
+            if shape_index >= 0:
+                self.shape_2d_menu.setCurrentIndex(shape_index)
+        else:
+            # It's a 3D shape, switch to 3D tab and select the shape
+            self.shape_sub_tabs.setCurrentIndex(1)
+            shape_index = self.shape_3d_menu.findText(shape_type)
+            if shape_index >= 0:
+                self.shape_3d_menu.setCurrentIndex(shape_index)
             
         # Set shape parameters
         self.set_shape_parameters(entry['shape_params'])
@@ -1887,7 +2072,7 @@ class GeometryApp(QWidget):
                 self.status_label.setText(f"💾 History saved to {filename}")
                 
         except Exception as e:
-            QMessageBox.critical(self, "Save Error", f"Could not save history: {str(e)}")
+            self.show_error_message(f"Could not save history: {str(e)}")
             
     def save_results(self):
         """Save results to a text file."""
@@ -1914,7 +2099,7 @@ class GeometryApp(QWidget):
             self.status_label.setText(f"💾 Results saved to {filename}")
             
         except Exception as e:
-            QMessageBox.critical(self, "Save Error", f"Could not save results: {str(e)}")
+            self.show_error_message(f"Could not save results: {str(e)}")
         
     def clear_all(self):
         """Clear all inputs, results, and the visualization."""
@@ -1939,7 +2124,8 @@ class GeometryApp(QWidget):
         self.rings_checkbox.setChecked(False)
         
         # Reset selections to defaults
-        self.shape_menu.setCurrentIndex(0)
+        self.shape_2d_menu.setCurrentIndex(0)
+        self.shape_3d_menu.setCurrentIndex(0)
         self.astro_menu.setCurrentIndex(0)
         self.align_menu.setCurrentIndex(0)
         self.color_combo.setCurrentIndex(0)

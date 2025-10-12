@@ -1200,12 +1200,21 @@ class GeometryApp(QWidget):
         scale_row = QHBoxLayout()
         scale_row.addWidget(QLabel("Scale Factor:"))
         self.scale_spinbox = QDoubleSpinBox()
-        self.scale_spinbox.setMinimum(0.1)
-        self.scale_spinbox.setMaximum(5.0)
+        self.scale_spinbox.setMinimum(0.001)  # Allow much smaller scale for very large values
+        self.scale_spinbox.setMaximum(100.0)  # Allow larger scale for very small values
         self.scale_spinbox.setValue(1.0)
-        self.scale_spinbox.setSingleStep(0.1)
+        self.scale_spinbox.setSingleStep(0.01)
         scale_row.addWidget(self.scale_spinbox)
         theme_layout.addLayout(scale_row)
+        
+        # Add logarithmic scale option
+        log_scale_row = QHBoxLayout()
+        log_scale_row.addWidget(QLabel("Use Logarithmic Scale:"))
+        self.log_scale_checkbox = QCheckBox()
+        self.log_scale_checkbox.setToolTip("Use logarithmic scaling for better visualization of very large values")
+        log_scale_row.addWidget(self.log_scale_checkbox)
+        log_scale_row.addStretch()
+        theme_layout.addLayout(log_scale_row)
         
         theme_group.setLayout(theme_layout)
         settings_layout.addWidget(theme_group)
@@ -1537,7 +1546,7 @@ class GeometryApp(QWidget):
             field_layout = QHBoxLayout()
             field_layout.addWidget(QLabel("Radius:"))
             entry = QLineEdit()
-            entry.setPlaceholderText("Enter radius")
+            entry.setPlaceholderText("Enter radius (0-1,000,000)")
             field_layout.addWidget(entry)
             self.inputs_layout.addLayout(field_layout)
             
@@ -1548,7 +1557,7 @@ class GeometryApp(QWidget):
             field_layout = QHBoxLayout()
             field_layout.addWidget(QLabel(f"{param_name}:"))
             entry = QLineEdit()
-            entry.setPlaceholderText(f"Enter {param_name.lower()}")
+            entry.setPlaceholderText(f"Enter {param_name.lower()} (0-1,000,000)")
             field_layout.addWidget(entry)
             self.inputs_layout.addLayout(field_layout)
             
@@ -1557,14 +1566,14 @@ class GeometryApp(QWidget):
             field_layout1 = QHBoxLayout()
             field_layout1.addWidget(QLabel("Outer Radius:"))
             entry1 = QLineEdit()
-            entry1.setPlaceholderText("Enter outer radius")
+            entry1.setPlaceholderText("Enter outer radius (0-1,000,000)")
             field_layout1.addWidget(entry1)
             self.inputs_layout.addLayout(field_layout1)
             
             field_layout2 = QHBoxLayout()
             field_layout2.addWidget(QLabel("Inner Radius:"))
             entry2 = QLineEdit()
-            entry2.setPlaceholderText("Enter inner radius")
+            entry2.setPlaceholderText("Enter inner radius (0-1,000,000)")
             field_layout2.addWidget(entry2)
             self.inputs_layout.addLayout(field_layout2)
             
@@ -1590,14 +1599,14 @@ class GeometryApp(QWidget):
             field_layout1 = QHBoxLayout()
             field_layout1.addWidget(QLabel(f"{param1}:"))
             entry1 = QLineEdit()
-            entry1.setPlaceholderText(f"Enter {param1.lower()}")
+            entry1.setPlaceholderText(f"Enter {param1.lower()} (0-1,000,000)")
             field_layout1.addWidget(entry1)
             self.inputs_layout.addLayout(field_layout1)
             
             field_layout2 = QHBoxLayout()
             field_layout2.addWidget(QLabel(f"{param2}:"))
             entry2 = QLineEdit()
-            entry2.setPlaceholderText(f"Enter {param2.lower()}")
+            entry2.setPlaceholderText(f"Enter {param2.lower()} (0-1,000,000)")
             field_layout2.addWidget(entry2)
             self.inputs_layout.addLayout(field_layout2)
             
@@ -1606,21 +1615,21 @@ class GeometryApp(QWidget):
             field_layout1 = QHBoxLayout()
             field_layout1.addWidget(QLabel("Base:"))
             entry1 = QLineEdit()
-            entry1.setPlaceholderText("Enter base")
+            entry1.setPlaceholderText("Enter base (0-1,000,000)")
             field_layout1.addWidget(entry1)
             self.inputs_layout.addLayout(field_layout1)
             
             field_layout2 = QHBoxLayout()
             field_layout2.addWidget(QLabel("Side:"))
             entry2 = QLineEdit()
-            entry2.setPlaceholderText("Enter side")
+            entry2.setPlaceholderText("Enter side (0-1,000,000)")
             field_layout2.addWidget(entry2)
             self.inputs_layout.addLayout(field_layout2)
             
             field_layout3 = QHBoxLayout()
             field_layout3.addWidget(QLabel("Height:"))
             entry3 = QLineEdit()
-            entry3.setPlaceholderText("Enter height")
+            entry3.setPlaceholderText("Enter height (0-1,000,000)")
             field_layout3.addWidget(entry3)
             self.inputs_layout.addLayout(field_layout3)
     
@@ -1669,9 +1678,10 @@ class GeometryApp(QWidget):
                             param_value = float(widget.text())
                             if param_value <= 0:
                                 raise ValueError("All values must be positive")
-                            if param_value > 10000:
-                                reply = QMessageBox.question(self, "Large Value", 
-                                                           f"Value {param_value} is very large. This may cause visualization issues. Continue?",
+                            if param_value > 1000000:
+                                # Show warning but allow the value
+                                reply = QMessageBox.question(self, "Very Large Value", 
+                                                           f"Value {param_value:,.0f} is very large. This may cause visualization issues. Continue?",
                                                            QMessageBox.Yes | QMessageBox.No)
                                 if reply == QMessageBox.No:
                                     return []
@@ -1816,11 +1826,13 @@ class GeometryApp(QWidget):
             
             # Update info label
             alignment_name = alignment.value if self.astro_object else "Center"
+            scale_info = f"{scale:.6f}" if scale < 0.001 else f"{scale:.4f}"
             self.info_label.setText(
                 f"• Shape: {shape_type.value}\n"
                 f"• Celestial Body: {self.astro_menu.currentText() if self.astro_object else 'None'}\n"
                 f"• Alignment: {alignment_name}\n"
-                f"• Scale: {scale:.2f} px/unit"
+                f"• Scale: {scale_info} px/unit\n"
+                f"• Logarithmic Scale: {'Yes' if self.log_scale_checkbox.isChecked() else 'No'}"
             )
             
             self.status_label.setText("✅ Calculation completed successfully!")
@@ -1921,7 +1933,24 @@ class GeometryApp(QWidget):
             scale_x = (scene_w * 0.8) / shape_w if shape_w > 0 else 1
             scale_y = (scene_h * 0.8) / shape_h if shape_h > 0 else 1
         
-        return min(scale_x, scale_y)
+        # Auto-adjust scale for very large values
+        calculated_scale = min(scale_x, scale_y)
+        
+        # Apply logarithmic scaling if enabled for very large values
+        if self.log_scale_checkbox.isChecked() and calculated_scale < 0.01:
+            # Use logarithmic scaling: log10(value) then normalize
+            max_dimension = max(shape_w, shape_h)
+            if max_dimension > 1000:
+                log_scale = math.log10(max_dimension)
+                calculated_scale = (scene_w * 0.8) / (log_scale * 100)
+        
+        # If the calculated scale is too small (large values), use a minimum scale
+        if calculated_scale < 0.0001:
+            return 0.0001
+        elif calculated_scale > 10000:
+            return 10000
+        else:
+            return calculated_scale
         
     def display_results(self):
         """Display calculation results."""
@@ -1929,19 +1958,24 @@ class GeometryApp(QWidget):
             return
             
         result_text = f"<h3>{self.current_shape.__class__.__name__} Properties</h3>"
-        result_text += f"<b>Area:</b> {self.current_shape.area():.2f}<br>"
-        result_text += f"<b>Perimeter:</b> {self.current_shape.perimeter():.2f}<br>"
+        
+        # Format large numbers with commas for readability
+        area = self.current_shape.area()
+        perimeter = self.current_shape.perimeter()
+        
+        result_text += f"<b>Area:</b> {area:,.2f}<br>"
+        result_text += f"<b>Perimeter:</b> {perimeter:,.2f}<br>"
         
         volume = self.current_shape.volume()
         if volume > 0:
-            result_text += f"<b>Volume:</b> {volume:.2f}<br>"
+            result_text += f"<b>Volume:</b> {volume:,.2f}<br>"
             
         # Add dimensions
         w, h, d = self.current_shape.natural_size()
         if d > 0:
-            result_text += f"<b>Dimensions:</b> {w:.1f} × {h:.1f} × {d:.1f}<br>"
+            result_text += f"<b>Dimensions:</b> {w:,.1f} × {h:,.1f} × {d:,.1f}<br>"
         else:
-            result_text += f"<b>Dimensions:</b> {w:.1f} × {h:.1f}<br>"
+            result_text += f"<b>Dimensions:</b> {w:,.1f} × {h:,.1f}<br>"
             
         if self.astro_object:
             # Check for overlap
@@ -2130,6 +2164,7 @@ class GeometryApp(QWidget):
         self.align_menu.setCurrentIndex(0)
         self.color_combo.setCurrentIndex(0)
         self.anim_checkbox.setChecked(False)
+        self.log_scale_checkbox.setChecked(False)
         
         # Clear results
         self.result_label.setText("⏳ Results will be shown here.")

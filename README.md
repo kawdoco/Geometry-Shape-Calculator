@@ -24,13 +24,13 @@
 
 ## 👥 Team Members
 
-- **Sayuri**
-- **Sithum** 
-- **Udesh**
-- **Hirusha**
-- **Imanya**
-- **Sandali**
-- **Malindu**
+- **Sayuri** - Team Leader and developer 
+- **Sithum** - developer 
+- **Udesh**  - developer 
+- **Hirusha**  -developer 
+- **Imanya**  -developer 
+- **Sandali**  -developer 
+- **Malindu** -developer 
 
 ## 📋 Features
 

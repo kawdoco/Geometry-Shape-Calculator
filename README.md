@@ -28,7 +28,7 @@
 - **Sithum** - developer 
 - **Udesh**  - developer 
 - **Hirusha**  -Developer 
-- **Imanya**  -developer 
+- **Imanya**  -Developer 
 - **Sandali**  -developer 
 - **Malindu** -developer 
 

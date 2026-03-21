@@ -27,7 +27,7 @@
 - **Sayuri** - Team Leader and developer 
 - **Sithum** - developer 
 - **Udesh**  - developer 
-- **Hirusha**  -developer 
+- **Hirusha**  -Developer 
 - **Imanya**  -developer 
 - **Sandali**  -developer 
 - **Malindu** -developer 

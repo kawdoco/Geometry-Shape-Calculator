@@ -29,7 +29,7 @@
 - **Udesh**  - developer 
 - **Hirusha**  -Developer 
 - **Imanya**  -Developer 
-- **Sandali**  -developer 
+- **Sandali**  -Developer 
 - **Malindu** -developer 
 
 ## 📋 Features

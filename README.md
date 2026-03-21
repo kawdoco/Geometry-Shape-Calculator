@@ -30,7 +30,7 @@
 - **Hirusha**  -Developer 
 - **Imanya**  -Developer 
 - **Sandali**  -Developer 
-- **Malindu** -developer 
+- **Malindu** -Developer 
 
 ## 📋 Features
 

@@ -7,12 +7,12 @@
 <table>
   <tr>
     <td align="center">
-      <img src="Astronomy.jpg" alt="Geometry Calculator" width="300" />
+      <img src="Images/Astronomy.jpg" alt="Geometry Calculator" width="300" />
       <br>
       <em>Geometry Calculator Interface</em>
     </td>
     <td align="center">
-      <img src="Shapes.png" alt="Shapes" width="300" />
+      <img src="Images/Shapes.png" alt="Shapes" width="300" />
       <br>
       <em>Geometric Shapes Collection</em>
     </td>
@@ -97,7 +97,7 @@
 
 <div align="center">
   
-  <img src="Geometry.png" alt="Sacred Geometry" width="350" />
+  <img src="Images/Geometry.png" alt="Sacred Geometry" width="350" />
   
   *Sacred Geometry: Patterns that connect the cosmic and earthly realms*
   
@@ -109,7 +109,7 @@
 
 <div align="center">
   
-  <img src="LeonardoDaVinviWithGoldenRatio.png" alt="Leonardo and Golden Ratio" width="350" />
+  <img src="Images/LeonardoDaVinviWithGoldenRatio.png" alt="Leonardo and Golden Ratio" width="350" />
   
   *Da Vinci's Vitruvian Man exemplifies geometric perfection in human form*
   
@@ -124,7 +124,7 @@
 
 <div align="center">
   
-  <img src="SymbolicValueOfShape.png" alt="Symbolic Shapes" width="350" />
+  <img src="Images/SymbolicValueOfShape.png" alt="Symbolic Shapes" width="350" />
   
   *Geometric shapes as archetypes of cosmic order*
   

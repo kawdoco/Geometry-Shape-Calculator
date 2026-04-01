@@ -24,9 +24,9 @@
 
 ## 👥 Team Members
 
-- **Sayuri** - Team Leader and developer 
-- **Sithum** - developer 
-- **Udesh**  - developer 
+- **Sayuri** - Team Leader and code designer & developer  
+- **Sithum** - Code designer 
+- **Udesh**  - Presentation creator 
 - **Hirusha**  -Developer 
 - **Imanya**  -Developer 
 - **Sandali**  -Developer 
